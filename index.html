@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#2563eb" />
-  <title>전기기사 이론(치트키) + 기출 통합 CBT PWA</title>
+  <title>전기기사 기출문제 통합 CBT PWA v3</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
@@ -21,7 +21,7 @@
         <span class="brand-icon">전</span>
         <div class="brand-text">
           <h1>전기기사 통합 CBT</h1>
-          <p class="subtitle">이론 치트키 PDF 연동 · 회차별 · 과목별 · 오프라인 PWA</p>
+          <p class="subtitle">KEC 2026 반영 · 과목별 모의고사 · 중복 필터 · 오프라인 PWA</p>
         </div>
       </button>
       <div class="topbar-actions">
@@ -65,12 +65,12 @@
           <strong id="statDupGroups" class="stat-val text-indigo">-</strong>
         </div>
         <div class="stat-card">
-          <span class="stat-label">미해설 회차</span>
-          <strong id="statNoExp" class="stat-val text-amber">-</strong>
+          <span class="stat-label">해설 포함 회차</span>
+          <strong id="statExpSessions" class="stat-val text-green">-</strong>
         </div>
       </div>
 
-      <!-- Global Filter Panel (Applies to Round, Subject & Theory modes) -->
+      <!-- Global Filter Panel (Applies to BOTH Round & Subject modes) -->
       <div class="filter-panel card">
         <div class="filter-row">
           <div class="dedup-box">
@@ -108,7 +108,6 @@
         <div id="statusChipsRow" class="chips">
           <button type="button" data-filter="all" class="chip active">전체</button>
           <button type="button" data-filter="duplicate" class="chip">중복(교차 검증)</button>
-          <button type="button" data-filter="no-exp" class="chip">미해설(2003~2008)</button>
           <button type="button" data-filter="wrong" class="chip">풀이 기록 있음</button>
         </div>
       </div>
@@ -120,6 +119,30 @@
 
       <!-- Panel B: Global Subject Mode -->
       <div id="panelSubjectMode" class="hidden">
+        <!-- Year Range + Checkboxes Filter for Subject Mode -->
+        <div id="subjectYearFilterBox" class="card subject-year-box">
+          <div class="sy-head">
+            <div class="sy-title-wrap">
+              <strong>과목별 모의고사 연도 선택</strong>
+              <span id="sySelectedSummary" class="sy-summary"></span>
+            </div>
+            <div class="sy-range-row">
+              <select id="syRangeStart" class="select-input select-sm" aria-label="시작 연도"></select>
+              <span class="sy-tilde">~</span>
+              <select id="syRangeEnd" class="select-input select-sm" aria-label="끝 연도"></select>
+              <button id="btnApplyYearRange" type="button" class="btn btn-dark btn-sm">범위 적용</button>
+            </div>
+          </div>
+          <div class="sy-quick-row">
+            <button id="btnYearRecent5" type="button" class="chip">최근 5년</button>
+            <button id="btnYearRecent10" type="button" class="chip">최근 10년</button>
+            <button id="btnYearKec" type="button" class="chip">KEC 이후(2021~)</button>
+            <button id="btnYearAll" type="button" class="link-btn">전체 선택</button>
+            <button id="btnYearNone" type="button" class="link-btn">전체 해제</button>
+          </div>
+          <div id="subjectYearCheckboxes" class="year-chk-grid"></div>
+        </div>
+
         <div id="subjectCardsGrid" class="subject-cards-grid"></div>
         <div id="subjectSetsPanel" class="card hidden" style="margin-top:14px;">
           <div class="sets-head">
@@ -127,12 +150,17 @@
               <h3 id="selectedSubjectTitle" style="margin:0;font-size:16px;"></h3>
               <p id="selectedSubjectMeta" class="sc-sub"></p>
             </div>
-            <button id="btnRandomSubject20" type="button" class="btn btn-primary btn-sm">랜덤 20문제 모의세트</button>
+            <div class="random-controls">
+              <label class="toggle-label toggle-sm" title="동일 회차·동일 지문 중복 문항을 제외하고 추출합니다">
+                <input id="chkRandomDedup" type="checkbox" checked />
+                <span>중복문제 제거</span>
+              </label>
+              <button id="btnRandomSubject20" type="button" class="btn btn-primary btn-sm">랜덤 20문제 모의세트</button>
+            </div>
           </div>
           <div id="subjectSetsGrid" class="sets-grid"></div>
         </div>
       </div>
-
       <!-- Panel C: Theory CheatKey + Linked Questions Mode -->
       <div id="panelTheoryMode" class="hidden">
         <div class="card theory-pdf-bar">
@@ -167,7 +195,7 @@
       </div>
     </section>
 
-    <!-- THEORY DETAIL VIEW (PDF Theory + Immediately Below/Beside Linked Questions) -->
+    <!-- THEORY DETAIL VIEW -->
     <section id="viewTheoryDetail" class="hidden">
       <div class="exam-header card">
         <div class="exam-header-left">
@@ -192,7 +220,6 @@
       <div id="tdBreadcrumbs" class="td-breadcrumb"></div>
 
       <div id="tdWorkspace" class="td-workspace td-stack">
-        <!-- Theory PDF Pages -->
         <section class="card td-pdf-pane">
           <div class="td-pane-head">
             <div>
@@ -212,7 +239,6 @@
           <div id="tdPdfPages" class="td-pdf-pages"></div>
         </section>
 
-        <!-- Linked Past Exam Questions -->
         <section class="td-quiz-pane">
           <div class="card td-quiz-bar">
             <div class="td-quiz-bar-top">
@@ -220,10 +246,20 @@
                 <strong id="tdQuizSummary">연계 기출문제</strong>
                 <span id="tdQuizStat" class="omr-stat" style="margin-left:8px;"></span>
               </div>
-              <div class="chips" id="tdQuizFilterChips">
-                <button type="button" data-qfilter="all" class="chip active">전체</button>
-                <button type="button" data-qfilter="recent5" class="chip">최근 5년</button>
-                <button type="button" data-qfilter="unsolved" class="chip">미풀이·오답</button>
+              <div class="td-quiz-toggles">
+                <label class="toggle-label toggle-sm">
+                  <input id="chkTdShowAnswerExp" type="checkbox" checked />
+                  <span>답·해설 보기</span>
+                </label>
+                <label class="toggle-label toggle-sm">
+                  <input id="chkTdQuizDedup" type="checkbox" checked />
+                  <span>중복문제 제거</span>
+                </label>
+                <div class="chips" id="tdQuizFilterChips">
+                  <button type="button" data-qfilter="all" class="chip active">전체</button>
+                  <button type="button" data-qfilter="recent5" class="chip">최근 5년</button>
+                  <button type="button" data-qfilter="unsolved" class="chip">미풀이</button>
+                </div>
               </div>
             </div>
             <div class="td-quiz-pager">
@@ -249,6 +285,10 @@
           </div>
         </div>
         <div class="exam-tools">
+          <label class="toggle-label toggle-exam" title="체크하면 정답과 해설이 표시되고, 해제하면 답과 해설이 숨겨집니다">
+            <input id="chkShowAnswerExp" type="checkbox" checked />
+            <span>답·해설 보기</span>
+          </label>
           <div class="view-toggle">
             <button id="btnViewSingle" type="button" class="vt-btn active">1문제씩</button>
             <button id="btnViewBatch20" type="button" class="vt-btn">20문제 모아보기</button>
@@ -256,6 +296,20 @@
           <button id="btnCrossCheck" type="button" class="btn btn-indigo btn-sm hidden">교차 비교</button>
           <button id="btnPadToggle" type="button" class="btn btn-outline btn-sm">연습장</button>
           <button id="btnResetSession" type="button" class="btn btn-outline btn-sm">초기화</button>
+        </div>
+      </div>
+
+      <!-- Random 20-Question Duplicate Inspection Banner -->
+      <div id="randomDupBanner" class="card dup-banner hidden">
+        <div class="dup-banner-left">
+          <strong id="randomDupStatus"></strong>
+          <span id="randomDupDetail" class="dup-banner-sub"></span>
+        </div>
+        <div class="dup-banner-right">
+          <label class="toggle-label toggle-sm">
+            <input id="chkBannerRemoveDup" type="checkbox" />
+            <span>중복문제 제거 (고유 문항으로 보충)</span>
+          </label>
         </div>
       </div>
 
@@ -268,12 +322,14 @@
           <div class="q-head">
             <div class="q-head-left">
               <span id="qNum" class="q-num"></span>
+              <span id="qDupBadge" class="badge badge-amber hidden">중복 문항</span>
               <span id="qOriginTag" class="badge badge-slate hidden"></span>
               <span id="qSubj" class="q-subj"></span>
               <span id="qCat" class="q-cat hidden"></span>
               <button id="qCheatkeyBtn" type="button" class="badge badge-teal btn-chip hidden" title="연계 치트키 이론 보기"></button>
             </div>
             <div class="q-head-right">
+              <button id="btnToggleOneExp" type="button" class="btn btn-outline btn-sm hidden">이 문제 해설 보기</button>
               <a id="qVideoLink" href="#" target="_blank" rel="noopener" class="btn btn-outline btn-sm hidden">해설 영상</a>
               <button id="btnBookmark" type="button" class="btn btn-outline btn-sm">☆ 북마크</button>
             </div>
@@ -381,10 +437,10 @@
         <h3>오프라인 저장 옵션</h3>
         <button id="btnCloseOffline" type="button" class="btn btn-outline btn-sm">닫기</button>
       </div>
-      <p class="modal-desc">와이파이가 연결된 상태에서 저장해 두면 비행기 모드에서도 모든 회차와 이론 치트키 매핑을 사용할 수 있습니다.</p>
+      <p class="modal-desc">와이파이가 연결된 상태에서 저장해 두면 비행기 모드에서도 모든 회차를 풀 수 있습니다.</p>
       <div class="modal-actions">
-        <button id="btnCacheJsonOnly" type="button" class="btn btn-outline btn-full">회차 JSON + 치트키 맵 저장 (171개 · 약 22MB)</button>
-        <button id="btnCacheEverything" type="button" class="btn btn-primary btn-full">JSON + 도면 이미지 전체 저장 (완전 오프라인 · 약 37MB)</button>
+        <button id="btnCacheJsonOnly" type="button" class="btn btn-outline btn-full">회차 JSON 전체 저장 (170개 · 약 21MB)</button>
+        <button id="btnCacheEverything" type="button" class="btn btn-primary btn-full">JSON + 도면 이미지 전체 저장 (완전 오프라인 · 약 36MB)</button>
       </div>
     </div>
   </div>

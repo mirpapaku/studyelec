@@ -1,7 +1,7 @@
 const STORAGE_KEY = 'electric_cbt_full_state_v2';
 const DEFAULT_PRIORITY = [
   '다산에듀', '김영북스', '한솔아카데미', '테스트나라', '핵담',
-  '파워텔', '엔지니어랩', '전기요금', '엔트', '전자문제집(미해설)'
+  '파워텔', '엔지니어랩', '전기요금', '엔트', '전자문제집'
 ];
 
 const state = {
@@ -9,28 +9,44 @@ const state = {
   loadedSessions: {},
   answers: {},
   bookmarks: {},
-  homeMode: 'round',       // 'round' | 'subject'
-  filter: 'all',           // 'all' | 'duplicate' | 'no-exp' | 'wrong'
+  homeMode: 'round',          // 'round' | 'subject'
+  filter: 'all',              // 'all' | 'duplicate' | 'wrong'
   enabledSources: new Set(),
   dedupEnabled: false,
   prioritySource: '다산에듀',
-  yearFilter: 'all',
+  yearFilter: 'all',          // Used in round mode
+  subjectYears: new Set(),    // Used in subject mode (checkboxes + range)
   search: '',
   selectedGlobalSubject: null,
 
+  // Study / Mock options
+  showAnswerExp: true,        // Global checkbox: show/hide answer & explanation while solving
+  manualExpOpen: new Set(),   // Per-question peek toggle when showAnswerExp is false
+  randomDedup: true,          // Pre-launch checkbox for random 20-question mock set
+
+  // Random 20-question mock state
+  isRandomMock: false,
+  randomRaw20: [],
+  randomPool: [],
+  randomDupIds: new Set(),
+
   // Active exam context
-  examMode: 'round',       // 'round' | 'subject_set'
+  examMode: 'round',          // 'round' | 'subject_set'
   examTitle: '',
   examSourceLabel: '',
   examHasExp: true,
   currentSetId: null,
   currentSubjectTab: 'all',
-  activeQuestions: [],     // Used in subject_set mode (each item has _meta)
-  viewMode: 'single',      // 'single' | 'batch20'
+  activeQuestions: [],        // Used in subject_set mode (each item has _meta)
+  viewMode: 'single',         // 'single' | 'batch20'
   currentIdx: 0,
   batchPage: 0,
   penColor: '#0f172a'
 };
+
+function migrateSourceName(name) {
+  return name === '전자문제집(미해설)' ? '전자문제집' : name;
+}
 
 function loadState() {
   try {
@@ -38,10 +54,15 @@ function loadState() {
     state.answers = raw.answers || {};
     state.bookmarks = raw.bookmarks || {};
     if (typeof raw.dedupEnabled === 'boolean') state.dedupEnabled = raw.dedupEnabled;
-    if (raw.prioritySource) state.prioritySource = raw.prioritySource;
+    if (raw.prioritySource) state.prioritySource = migrateSourceName(raw.prioritySource);
     if (Array.isArray(raw.enabledSources) && raw.enabledSources.length > 0) {
-      state.enabledSources = new Set(raw.enabledSources);
+      state.enabledSources = new Set(raw.enabledSources.map(migrateSourceName));
     }
+    if (Array.isArray(raw.subjectYears) && raw.subjectYears.length > 0) {
+      state.subjectYears = new Set(raw.subjectYears.map(Number));
+    }
+    if (typeof raw.showAnswerExp === 'boolean') state.showAnswerExp = raw.showAnswerExp;
+    if (typeof raw.randomDedup === 'boolean') state.randomDedup = raw.randomDedup;
   } catch (e) {}
 }
 
@@ -52,7 +73,10 @@ function saveState() {
       bookmarks: state.bookmarks,
       dedupEnabled: state.dedupEnabled,
       prioritySource: state.prioritySource,
-      enabledSources: Array.from(state.enabledSources)
+      enabledSources: Array.from(state.enabledSources),
+      subjectYears: Array.from(state.subjectYears),
+      showAnswerExp: state.showAnswerExp,
+      randomDedup: state.randomDedup
     }));
   } catch (e) {}
 }
@@ -110,12 +134,20 @@ function getSourceRank(sourceName) {
   return idx === -1 ? 99 : idx;
 }
 
+function getAllYearsDesc() {
+  return Array.from(new Set((state.index?.sessions || []).map(s => Number(s.year)))).sort((a, b) => b - a);
+}
+
 // Compute filtered sessions (used by BOTH Round Mode & Subject Mode)
 function getFilteredSessions(applyRoundStatusFilter = true) {
   const all = state.index?.sessions || [];
   let list = all.filter(s => {
     if (!state.enabledSources.has(s.source)) return false;
-    if (state.yearFilter !== 'all' && String(s.year) !== state.yearFilter) return false;
+    if (state.homeMode === 'subject') {
+      if (!state.subjectYears.has(Number(s.year))) return false;
+    } else {
+      if (state.yearFilter !== 'all' && String(s.year) !== state.yearFilter) return false;
+    }
     if (state.search.trim()) {
       const q = state.search.trim().toLowerCase();
       const hay = `${s.year} ${s.round}회 ${s.roundLabel} ${s.source}`.toLowerCase();
@@ -145,7 +177,6 @@ function getFilteredSessions(applyRoundStatusFilter = true) {
 
   return list.filter(s => {
     if (state.filter === 'duplicate' && dupCounts[s.duplicateGroup] < 2) return false;
-    if (state.filter === 'no-exp' && s.hasExplanation) return false;
     if (state.filter === 'wrong' && getSessionProgress(s.setId) === 0) return false;
     return true;
   });
@@ -167,15 +198,16 @@ function renderHome() {
   const dupCounts = {};
   baseSessions.forEach(s => { dupCounts[s.duplicateGroup] = (dupCounts[s.duplicateGroup] || 0) + 1; });
   const dupGroupTotal = Object.values(dupCounts).filter(c => c > 1).length;
-  const noExpCount = baseSessions.filter(s => !s.hasExplanation).length;
+  const expSessionCount = baseSessions.filter(s => s.hasExplanation).length;
   const totalQ = baseSessions.reduce((acc, s) => acc + (s.questionCount || 0), 0);
 
   document.getElementById('statSessions').textContent = `${baseSessions.length}개`;
   document.getElementById('statQuestions').textContent = `${totalQ.toLocaleString()}문항`;
   document.getElementById('statDupGroups').textContent = `${dupGroupTotal}그룹`;
-  document.getElementById('statNoExp').textContent = `${noExpCount}개`;
+  document.getElementById('statExpSessions').textContent = `${expSessionCount}개`;
 
   document.getElementById('priorityWrap').classList.toggle('hidden', !state.dedupEnabled);
+  document.getElementById('selectYear').classList.toggle('hidden', state.homeMode === 'subject');
   document.getElementById('statusChipsRow').classList.toggle('hidden', state.homeMode !== 'round');
   document.getElementById('panelRoundMode').classList.toggle('hidden', state.homeMode !== 'round');
   document.getElementById('panelSubjectMode').classList.toggle('hidden', state.homeMode !== 'subject');
@@ -184,6 +216,7 @@ function renderHome() {
   if (state.homeMode === 'round') {
     renderSessionGrid(displaySessions, dupCounts);
   } else if (state.homeMode === 'subject') {
+    renderSubjectYearFilter();
     renderGlobalSubjectMode(baseSessions);
   } else if (state.homeMode === 'theory' && typeof window.renderTheoryHome === 'function') {
     window.renderTheoryHome();
@@ -212,7 +245,7 @@ function renderSessionGrid(list, dupCounts) {
           </div>
           <div class="sc-badges" style="margin-top:8px;">
             ${dupCnt > 1 ? `<span class="badge badge-indigo">중복 ${dupCnt}종 · 교차 검증</span>` : ''}
-            ${s.hasExplanation ? `<span class="badge badge-slate">해설 포함</span>` : `<span class="badge badge-amber">미해설 (추후 보강)</span>`}
+            ${s.hasExplanation ? `<span class="badge badge-slate">해설 포함</span>` : `<span class="badge badge-amber">미해설</span>`}
           </div>
         </div>
         <div class="sc-foot">
@@ -225,6 +258,44 @@ function renderSessionGrid(list, dupCounts) {
 
   grid.querySelectorAll('[data-open]').forEach(btn => {
     btn.addEventListener('click', () => openRoundSession(btn.getAttribute('data-open')));
+  });
+}
+
+// =========================================================================
+// SUBJECT MODE: YEAR CHECKBOXES + RANGE FILTER
+// =========================================================================
+function renderSubjectYearFilter() {
+  const allYears = getAllYearsDesc();
+  const grid = document.getElementById('subjectYearCheckboxes');
+  const selectedArr = allYears.filter(y => state.subjectYears.has(y));
+
+  const summaryEl = document.getElementById('sySelectedSummary');
+  if (selectedArr.length === 0) {
+    summaryEl.textContent = '선택된 연도 없음 (연도를 1개 이상 선택하세요)';
+  } else if (selectedArr.length === allYears.length) {
+    summaryEl.textContent = `전체 ${allYears.length}개 연도 (${allYears[allYears.length - 1]}~${allYears[0]}년)`;
+  } else {
+    summaryEl.textContent = `${selectedArr.length}개 연도 선택됨 (${selectedArr[selectedArr.length - 1]}~${selectedArr[0]}년)`;
+  }
+
+  grid.innerHTML = allYears.map(y => {
+    const checked = state.subjectYears.has(y);
+    return `
+      <label class="year-chk ${checked ? 'checked' : ''}">
+        <input type="checkbox" data-sy-year="${y}" ${checked ? 'checked' : ''} />
+        <span>${y}년</span>
+      </label>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('[data-sy-year]').forEach(chk => {
+    chk.addEventListener('change', e => {
+      const yr = Number(chk.getAttribute('data-sy-year'));
+      if (e.target.checked) state.subjectYears.add(yr);
+      else state.subjectYears.delete(yr);
+      saveState();
+      renderHome();
+    });
   });
 }
 
@@ -265,15 +336,12 @@ function renderGlobalSubjectMode(baseSessions) {
 
   panel.classList.remove('hidden');
   document.getElementById('selectedSubjectTitle').textContent = `${active.subj} — 20문제 단위 세트 선택`;
-  document.getElementById('selectedSubjectMeta').textContent = `현재 필터 기준 총 ${active.totalCount.toLocaleString()}문항 (${active.setCount}개 세트, 선택한 세트의 회차만 가볍게 불러옵니다)`;
+  document.getElementById('selectedSubjectMeta').textContent = `선택 연도·출판사 기준 총 ${active.totalCount.toLocaleString()}문항 (${active.setCount}개 세트)`;
 
-  // Build virtual 20-question slice map across matchingSessions
   const sets = [];
-  let cursor = 0;
   for (let setIdx = 0; setIdx < active.setCount; setIdx++) {
     const startGlobal = setIdx * 20;
     const endGlobal = Math.min(active.totalCount, startGlobal + 20);
-    // Find label of first session in this slice
     let acc = 0, firstLabel = '';
     for (const s of active.matchingSessions) {
       const cnt = s.subjectCounts[active.subj];
@@ -301,14 +369,97 @@ function renderGlobalSubjectMode(baseSessions) {
     });
   });
 
+  document.getElementById('chkRandomDedup').checked = state.randomDedup;
   document.getElementById('btnRandomSubject20').onclick = () => {
     openRandomSubject20(active.subj, active.matchingSessions);
   };
 }
 
+// =========================================================================
+// DUPLICATE DETECTION & REMOVAL FOR RANDOM 20-QUESTION MOCK SETS
+// =========================================================================
+function normalizeStem(stem) {
+  return String(stem || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\\\[|\\\]|\\\(|\\\)|\$\$|\$|\\text\{[^}]*\}|\\mathrm\{[^}]*\}/g, ' ')
+    .replace(/[^0-9a-zA-Z가-힣]/g, '')
+    .toLowerCase();
+}
+
+function getQuestionKeys(q) {
+  const groupKey = q._meta ? `${q._meta.duplicateGroup}#${q.number}` : q.id;
+  const stemNorm = normalizeStem(q.stem);
+  const stemKey = stemNorm.length >= 14 ? `stem:${stemNorm}` : null;
+  return { groupKey, stemKey };
+}
+
+function analyzeDuplicates(questions) {
+  const seenGroup = new Map();
+  const seenStem = new Map();
+  const dupIds = new Set();
+  const uniqueList = [];
+
+  for (const q of questions) {
+    const { groupKey, stemKey } = getQuestionKeys(q);
+    let isDup = false;
+    if (seenGroup.has(groupKey)) {
+      isDup = true;
+    } else if (stemKey && seenStem.has(stemKey)) {
+      isDup = true;
+    }
+
+    if (isDup) {
+      dupIds.add(q.id);
+    } else {
+      seenGroup.set(groupKey, q.id);
+      if (stemKey) seenStem.set(stemKey, q.id);
+      uniqueList.push(q);
+    }
+  }
+  return { dupCount: dupIds.size, dupIds, uniqueList };
+}
+
+function buildUniqueRandomSet(pool, targetCount = 20) {
+  const seenGroup = new Set();
+  const seenStem = new Set();
+  const result = [];
+  for (const q of pool) {
+    const { groupKey, stemKey } = getQuestionKeys(q);
+    if (seenGroup.has(groupKey)) continue;
+    if (stemKey && seenStem.has(stemKey)) continue;
+    seenGroup.add(groupKey);
+    if (stemKey) seenStem.add(stemKey);
+    result.push(q);
+    if (result.length >= targetCount) break;
+  }
+  return result;
+}
+
+function applyRandomDedupMode(removeDup) {
+  state.randomDedup = removeDup;
+  saveState();
+  const preChk = document.getElementById('chkRandomDedup');
+  if (preChk) preChk.checked = removeDup;
+
+  if (removeDup) {
+    // Keep unique questions from raw20 first, then backfill from randomPool up to 20
+    const combined = [...state.randomRaw20, ...state.randomPool];
+    const deduped = buildUniqueRandomSet(combined, 20);
+    state.activeQuestions = deduped;
+    state.randomDupIds = new Set();
+  } else {
+    state.activeQuestions = [...state.randomRaw20];
+    const analysis = analyzeDuplicates(state.activeQuestions);
+    state.randomDupIds = analysis.dupIds;
+  }
+
+  state.currentIdx = 0;
+  state.batchPage = 0;
+  renderExam();
+}
+
 async function openSubjectSlice(subj, matchingSessions, offset, limit, title) {
   showToast('선택한 20문항 세트를 불러오는 중...');
-  // Identify only the sessions overlapping [offset, offset + limit)
   const needed = [];
   let acc = 0;
   for (const s of matchingSessions) {
@@ -330,21 +481,42 @@ async function openSubjectSlice(subj, matchingSessions, offset, limit, title) {
     picked.forEach(q => collected.push({ ...q, _meta: item.meta }));
   }
 
+  state.isRandomMock = false;
+  state.randomRaw20 = [];
+  state.randomPool = [];
+  state.randomDupIds = new Set();
   launchSubjectExam(title, `${collected.length}문항 (과목 집중)`, collected);
 }
 
 async function openRandomSubject20(subj, matchingSessions) {
-  if (matchingSessions.length === 0) return;
-  showToast('랜덤 20문항을 추출하는 중...');
-  // Pick up to 5 random sessions to keep network fetches super lightweight
-  const shuffled = [...matchingSessions].sort(() => Math.random() - 0.5).slice(0, Math.min(6, matchingSessions.length));
+  if (matchingSessions.length === 0) {
+    showToast('선택된 조건에 맞는 회차가 없습니다.');
+    return;
+  }
+  showToast('랜덤 20문항을 추출하고 중복 여부를 검사하는 중...');
+  const maxFetch = Math.min(15, matchingSessions.length);
+  const shuffledSessions = [...matchingSessions].sort(() => Math.random() - 0.5).slice(0, maxFetch);
   const pool = [];
-  for (const s of shuffled) {
+  for (const s of shuffledSessions) {
     const ds = await fetchSession(s.setId);
     ds.questions.filter(q => q.subject === subj).forEach(q => pool.push({ ...q, _meta: s }));
   }
-  const picked = pool.sort(() => Math.random() - 0.5).slice(0, 20);
-  launchSubjectExam(`${subj} 랜덤 20문항`, '모의 세트', picked);
+  const shuffledPool = pool.sort(() => Math.random() - 0.5);
+
+  state.isRandomMock = true;
+  state.randomPool = shuffledPool;
+  state.randomRaw20 = shuffledPool.slice(0, 20);
+
+  let initialQuestions;
+  if (state.randomDedup) {
+    initialQuestions = buildUniqueRandomSet(shuffledPool, 20);
+    state.randomDupIds = new Set();
+  } else {
+    initialQuestions = [...state.randomRaw20];
+    state.randomDupIds = analyzeDuplicates(initialQuestions).dupIds;
+  }
+
+  launchSubjectExam(`${subj} 랜덤 20문항`, '과목별 모의세트', initialQuestions);
 }
 
 function launchSubjectExam(title, sourceLabel, questions) {
@@ -357,6 +529,7 @@ function launchSubjectExam(title, sourceLabel, questions) {
   state.currentSubjectTab = 'all';
   state.currentIdx = 0;
   state.batchPage = 0;
+  state.manualExpOpen.clear();
 
   document.getElementById('viewHome').classList.add('hidden');
   document.getElementById('viewExam').classList.remove('hidden');
@@ -377,6 +550,8 @@ async function openRoundSession(setId) {
   }
   const meta = state.index.sessions.find(s => s.setId === setId);
   state.examMode = 'round';
+  state.isRandomMock = false;
+  state.randomDupIds = new Set();
   state.currentSetId = setId;
   state.examTitle = formatRoundTitle(meta);
   state.examSourceLabel = meta.source;
@@ -384,6 +559,7 @@ async function openRoundSession(setId) {
   state.currentSubjectTab = 'all';
   state.currentIdx = 0;
   state.batchPage = 0;
+  state.manualExpOpen.clear();
 
   document.getElementById('viewHome').classList.add('hidden');
   document.getElementById('viewExam').classList.remove('hidden');
@@ -428,6 +604,34 @@ function getVisibleQuestions() {
   return base.map(q => ({ ...q, _meta: meta }));
 }
 
+function renderRandomDupBanner(questions) {
+  const banner = document.getElementById('randomDupBanner');
+  if (!state.isRandomMock) {
+    banner.classList.add('hidden');
+    return;
+  }
+  banner.classList.remove('hidden');
+  const analysis = analyzeDuplicates(questions);
+  state.randomDupIds = analysis.dupIds;
+
+  const statusEl = document.getElementById('randomDupStatus');
+  const detailEl = document.getElementById('randomDupDetail');
+  const chkEl = document.getElementById('chkBannerRemoveDup');
+  chkEl.checked = state.randomDedup;
+
+  if (analysis.dupCount > 0) {
+    banner.classList.add('has-dup');
+    statusEl.textContent = `⚠️ 중복문제 ${analysis.dupCount}건 발견`;
+    detailEl.textContent = `현재 ${questions.length}문항 중 고유 ${analysis.uniqueList.length}문항 · 우측 체크박스로 중복을 제거하고 고유 문항으로 보충할 수 있습니다.`;
+  } else {
+    banner.classList.remove('has-dup');
+    statusEl.textContent = `✅ 중복문제 없음 (${questions.length}문항 모두 고유)`;
+    detailEl.textContent = state.randomDedup
+      ? '동일 회차·동일 지문 중복 제거가 적용되었습니다.'
+      : '추출된 문항 간 중복이 발견되지 않았습니다.';
+  }
+}
+
 function renderExam() {
   const questions = getVisibleQuestions();
   if (questions.length === 0) return;
@@ -435,6 +639,9 @@ function renderExam() {
   document.getElementById('examTitle').textContent = state.examTitle;
   document.getElementById('examSource').textContent = state.examSourceLabel;
   document.getElementById('examNoExp').classList.toggle('hidden', state.examHasExp);
+  document.getElementById('chkShowAnswerExp').checked = state.showAnswerExp;
+
+  renderRandomDupBanner(questions);
 
   document.getElementById('btnViewSingle').classList.toggle('active', state.viewMode === 'single');
   document.getElementById('btnViewBatch20').classList.toggle('active', state.viewMode === 'batch20');
@@ -455,6 +662,7 @@ function renderSingleQuestion(questions) {
   const q = questions[state.currentIdx];
   const meta = q._meta;
   const chosen = state.answers[q.id];
+  const reveal = state.showAnswerExp || state.manualExpOpen.has(q.id);
   const nums = ['①', '②', '③', '④'];
 
   const siblings = state.index.sessions.filter(s => s.duplicateGroup === meta.duplicateGroup);
@@ -466,7 +674,13 @@ function renderSingleQuestion(questions) {
     btnCross.classList.add('hidden');
   }
 
-  document.getElementById('qNum').textContent = `${q.number}번`;
+  document.getElementById('qNum').textContent = state.examMode === 'subject_set'
+    ? `${state.currentIdx + 1}번 (원본 ${q.number}번)`
+    : `${q.number}번`;
+
+  const dupBadge = document.getElementById('qDupBadge');
+  dupBadge.classList.toggle('hidden', !state.randomDupIds.has(q.id));
+
   const originTag = document.getElementById('qOriginTag');
   if (state.examMode === 'subject_set') {
     originTag.textContent = `${formatRoundTitle(meta)} · ${meta.source}`;
@@ -487,6 +701,20 @@ function renderSingleQuestion(questions) {
     ckBtn.onclick = () => { if (typeof window.openTheoryDetail === 'function') window.openTheoryDetail(ckEntry.id); };
   } else if (ckBtn) {
     ckBtn.classList.add('hidden');
+  }
+
+  // Individual peek button when global "답·해설 보기" is unchecked
+  const btnOneExp = document.getElementById('btnToggleOneExp');
+  if (!state.showAnswerExp) {
+    btnOneExp.classList.remove('hidden');
+    btnOneExp.textContent = state.manualExpOpen.has(q.id) ? '이 문제 해설 숨기기' : '이 문제 해설 보기';
+    btnOneExp.onclick = () => {
+      if (state.manualExpOpen.has(q.id)) state.manualExpOpen.delete(q.id);
+      else state.manualExpOpen.add(q.id);
+      renderSingleQuestion(questions);
+    };
+  } else {
+    btnOneExp.classList.add('hidden');
   }
 
   const vidEl = document.getElementById('qVideoLink');
@@ -517,9 +745,11 @@ function renderSingleQuestion(questions) {
   chEl.innerHTML = q.choices.map((c, i) => {
     const val = i + 1;
     let cls = '';
-    if (chosen) {
+    if (reveal) {
       if (val === q.answer) cls = 'correct';
-      else if (val === chosen) cls = 'wrong';
+      else if (chosen && val === chosen) cls = 'wrong';
+    } else if (chosen && val === chosen) {
+      cls = 'selected';
     }
     return `<button type="button" data-choice="${val}" class="choice-btn ${cls}"><span class="choice-num">${nums[i] || val}</span><span class="choice-body">${c}</span></button>`;
   }).join('');
@@ -533,11 +763,16 @@ function renderSingleQuestion(questions) {
   });
 
   const expBox = document.getElementById('qExpBox');
-  if (chosen) {
-    const isOk = chosen === q.answer;
+  if (reveal) {
     expBox.classList.remove('hidden');
-    expBox.className = `q-exp-box ${isOk ? 'ok' : 'no'}`;
-    document.getElementById('qResLabel').textContent = isOk ? '정답입니다!' : '오답입니다';
+    if (chosen) {
+      const isOk = chosen === q.answer;
+      expBox.className = `q-exp-box ${isOk ? 'ok' : 'no'}`;
+      document.getElementById('qResLabel').textContent = isOk ? '정답입니다!' : '오답입니다';
+    } else {
+      expBox.className = 'q-exp-box info';
+      document.getElementById('qResLabel').textContent = '정답 및 해설';
+    }
     document.getElementById('qCorrectAns').textContent = `정답: ${nums[q.answer - 1] || q.answer}`;
 
     const fEl = document.getElementById('qFormula');
@@ -552,7 +787,7 @@ function renderSingleQuestion(questions) {
     if (q.explanation && q.explanation.replace(/<[^>]+>/g, '').trim()) {
       bodyEl.innerHTML = q.explanation;
     } else {
-      bodyEl.innerHTML = `<span class="badge badge-amber" style="margin-right:6px;">해설 준비 중</span>이 회차는 문제·정답만 먼저 통합된 상태입니다.`;
+      bodyEl.innerHTML = `<span class="badge badge-amber" style="margin-right:6px;">해설 준비 중</span>등록된 해설이 없습니다.`;
     }
   } else {
     expBox.classList.add('hidden');
@@ -571,12 +806,18 @@ function renderSingleQuestion(questions) {
     const a = state.answers[item.id];
     if (a) { solved++; if (a === item.answer) correct++; }
   });
-  document.getElementById('omrStat').textContent = `정답 ${correct} / 풀이 ${solved}`;
+  document.getElementById('omrStat').textContent = state.showAnswerExp
+    ? `정답 ${correct} / 풀이 ${solved}`
+    : `풀이 ${solved} / ${questions.length} (채점 숨김)`;
 
   const omr = document.getElementById('omrGrid');
   omr.innerHTML = questions.map((item, idx) => {
     const a = state.answers[item.id];
-    const cls = `${a ? (a === item.answer ? 'ok' : 'no') : ''} ${idx === state.currentIdx ? 'cur' : ''}`;
+    let statusCls = '';
+    if (a) {
+      statusCls = state.showAnswerExp ? (a === item.answer ? 'ok' : 'no') : 'answered';
+    }
+    const cls = `${statusCls} ${idx === state.currentIdx ? 'cur' : ''}`;
     return `<button type="button" data-jump="${idx}" class="omr-btn ${cls}">${state.examMode === 'subject_set' ? (idx + 1) : item.number}</button>`;
   }).join('');
   omr.querySelectorAll('[data-jump]').forEach(btn => {
@@ -606,7 +847,9 @@ function renderBatch20(questions) {
     if (a) { solved++; if (a === q.answer) correct++; }
   });
 
-  document.getElementById('batchSummary').textContent = `현재 20문항 보기 (${start + 1}~${start + slice.length} / 총 ${questions.length}문항) · 정답 ${correct}/${solved}`;
+  document.getElementById('batchSummary').textContent = state.showAnswerExp
+    ? `현재 20문항 보기 (${start + 1}~${start + slice.length} / 총 ${questions.length}문항) · 정답 ${correct}/${solved}`
+    : `현재 20문항 보기 (${start + 1}~${start + slice.length} / 총 ${questions.length}문항) · 풀이 ${solved}/${slice.length} (답·해설 숨김)`;
   document.getElementById('batchPageLabel').textContent = `${state.batchPage + 1} / ${totalPages} 페이지`;
   document.getElementById('btnBatchPrev').disabled = state.batchPage === 0;
   document.getElementById('btnBatchNext').disabled = state.batchPage >= totalPages - 1;
@@ -614,18 +857,24 @@ function renderBatch20(questions) {
   const listEl = document.getElementById('batchList');
   listEl.innerHTML = slice.map((q, localIdx) => {
     const chosen = state.answers[q.id];
+    const reveal = state.showAnswerExp || state.manualExpOpen.has(q.id);
     const meta = q._meta;
     const siblings = state.index.sessions.filter(s => s.duplicateGroup === meta.duplicateGroup);
     const hasExp = q.explanation && q.explanation.replace(/<[^>]+>/g, '').trim().length > 0;
+    const displayNum = state.examMode === 'subject_set' ? `${start + localIdx + 1}번 (원본 ${q.number}번)` : `${q.number}번`;
+    const isDup = state.randomDupIds.has(q.id);
+
     return `
       <article class="card" id="batch_q_${q.id}">
         <div class="q-head">
           <div class="q-head-left">
-            <span class="q-num">${q.number}번</span>
+            <span class="q-num">${displayNum}</span>
+            ${isDup ? `<span class="badge badge-amber">중복 문항</span>` : ''}
             ${state.examMode === 'subject_set' ? `<span class="badge badge-slate">${formatRoundTitle(meta)} · ${meta.source}</span>` : ''}
             <span class="q-subj">${q.subject}</span>
           </div>
           <div class="q-head-right">
+            ${!state.showAnswerExp ? `<button type="button" data-batch-exp="${q.id}" class="btn btn-outline btn-sm">${state.manualExpOpen.has(q.id) ? '해설 숨기기' : '해설 보기'}</button>` : ''}
             ${siblings.length > 1 ? `<button type="button" data-batch-cross="${q.id}" class="btn btn-indigo btn-sm">교차 비교 (${siblings.length}종)</button>` : ''}
           </div>
         </div>
@@ -635,21 +884,24 @@ function renderBatch20(questions) {
           ${q.choices.map((c, i) => {
             const val = i + 1;
             let cls = '';
-            if (chosen) {
+            if (reveal) {
               if (val === q.answer) cls = 'correct';
-              else if (val === chosen) cls = 'wrong';
+              else if (chosen && val === chosen) cls = 'wrong';
+            } else if (chosen && val === chosen) {
+              cls = 'selected';
             }
             return `<button type="button" data-bq="${q.id}" data-bch="${val}" class="choice-btn ${cls}"><span class="choice-num">${nums[i] || val}</span><span class="choice-body">${c}</span></button>`;
           }).join('')}
         </div>
-        ${chosen ? `
-          <div class="q-exp-box ${chosen === q.answer ? 'ok' : 'no'}">
+        ${reveal ? `
+          <div class="q-exp-box ${chosen ? (chosen === q.answer ? 'ok' : 'no') : 'info'}">
             <div class="q-exp-head">
-              <strong>${chosen === q.answer ? '정답입니다!' : '오답입니다'}</strong>
+              <strong>${chosen ? (chosen === q.answer ? '정답입니다!' : '오답입니다') : '정답 및 해설'}</strong>
               <span>정답: ${nums[q.answer - 1] || q.answer}</span>
             </div>
-            ${q.formula ? `<div class="q-formula"><strong>핵심 공식:</strong> ${q.formula}</div>` : ''}
-            <div class="q-exp-body">${hasExp ? q.explanation : '<span class="badge badge-amber">해설 준비 중</span> 추후 보강 예정입니다.'}</div>
+            ${q.formula && q.formula.trim() ? `<div class="q-formula"><strong>핵심 공식:</strong> ${q.formula}</div>` : ''}
+            ${q.tip && q.tip.trim() ? `<div class="q-tip"><strong>암기/풀이 팁:</strong> ${q.tip}</div>` : ''}
+            <div class="q-exp-body">${hasExp ? q.explanation : '<span class="badge badge-amber">해설 준비 중</span> 등록된 해설이 없습니다.'}</div>
           </div>
         ` : ''}
       </article>
@@ -662,6 +914,15 @@ function renderBatch20(questions) {
       const val = Number(btn.getAttribute('data-bch'));
       state.answers[qid] = val;
       saveState();
+      renderBatch20(questions);
+    });
+  });
+
+  listEl.querySelectorAll('[data-batch-exp]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qid = btn.getAttribute('data-batch-exp');
+      if (state.manualExpOpen.has(qid)) state.manualExpOpen.delete(qid);
+      else state.manualExpOpen.add(qid);
       renderBatch20(questions);
     });
   });
@@ -693,6 +954,7 @@ async function openCrossCheckForQuestion(q) {
     if (!sData) return `<div class="card"><strong>${sibMeta.source}</strong>: 불러오기 실패</div>`;
     const item = sData.questions.find(x => x.number === q.number);
     if (!item) return `<div class="card"><strong>${sibMeta.source}</strong>: ${q.number}번 문항 없음</div>`;
+    const hasExp = item.explanation && item.explanation.replace(/<[^>]+>/g, '').trim().length > 0;
     return `
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -704,6 +966,7 @@ async function openCrossCheckForQuestion(q) {
         <div style="font-size:12.5px;line-height:1.6;color:#334155;">
           ${item.choices.map((c, i) => `<div style="${i + 1 === item.answer ? 'font-weight:700;color:#047857;' : ''}">${nums[i] || (i + 1)} ${c}</div>`).join('')}
         </div>
+        ${hasExp ? `<details style="margin-top:8px;font-size:12.5px;color:#334155;"><summary style="cursor:pointer;font-weight:600;color:#2563eb;">해설 보기</summary><div style="margin-top:6px;line-height:1.6;">${item.explanation}</div></details>` : ''}
       </div>
     `;
   }).join('');
@@ -818,6 +1081,8 @@ async function init() {
   }
 
   // Default all publishers enabled if none saved
+  const validSources = new Set(state.index.sources || []);
+  state.enabledSources = new Set(Array.from(state.enabledSources).filter(s => validSources.has(s)));
   if (state.enabledSources.size === 0) {
     (state.index.sources || []).forEach(s => state.enabledSources.add(s));
   }
@@ -832,17 +1097,45 @@ async function init() {
     priSelect.appendChild(opt);
   });
 
-  // Year dropdown
+  // Year dropdowns (Round mode + Subject range selectors)
+  const yearsDesc = getAllYearsDesc();
+  const yearsAsc = [...yearsDesc].reverse();
   const yearSelect = document.getElementById('selectYear');
-  const years = Array.from(new Set(state.index.sessions.map(s => s.year))).sort((a, b) => b - a);
-  years.forEach(y => {
+  const syStart = document.getElementById('syRangeStart');
+  const syEnd = document.getElementById('syRangeEnd');
+
+  yearsDesc.forEach(y => {
     const opt = document.createElement('option');
     opt.value = String(y);
     opt.textContent = `${y}년`;
     yearSelect.appendChild(opt);
   });
+  yearsAsc.forEach(y => {
+    const opt1 = document.createElement('option');
+    opt1.value = String(y);
+    opt1.textContent = `${y}년`;
+    syStart.appendChild(opt1);
+
+    const opt2 = document.createElement('option');
+    opt2.value = String(y);
+    opt2.textContent = `${y}년`;
+    syEnd.appendChild(opt2);
+  });
+  if (yearsAsc.length > 0) {
+    syStart.value = String(yearsAsc[0]);
+    syEnd.value = String(yearsAsc[yearsAsc.length - 1]);
+  }
+
+  // Default all years selected in subject mode if none saved
+  const validYears = new Set(yearsDesc);
+  state.subjectYears = new Set(Array.from(state.subjectYears).filter(y => validYears.has(y)));
+  if (state.subjectYears.size === 0) {
+    yearsDesc.forEach(y => state.subjectYears.add(y));
+  }
 
   document.getElementById('chkDedup').checked = state.dedupEnabled;
+  document.getElementById('chkShowAnswerExp').checked = state.showAnswerExp;
+  document.getElementById('chkRandomDedup').checked = state.randomDedup;
   renderPublisherChips();
   renderHome();
 
@@ -857,6 +1150,76 @@ async function init() {
   document.getElementById('tabModeRound').addEventListener('click', () => setHomeTab('round'));
   document.getElementById('tabModeSubject').addEventListener('click', () => setHomeTab('subject'));
   document.getElementById('tabModeTheory')?.addEventListener('click', () => setHomeTab('theory'));
+
+  // Subject year range & quick buttons
+  document.getElementById('btnApplyYearRange').addEventListener('click', () => {
+    const a = Number(syStart.value);
+    const b = Number(syEnd.value);
+    const minY = Math.min(a, b);
+    const maxY = Math.max(a, b);
+    state.subjectYears = new Set(yearsDesc.filter(y => y >= minY && y <= maxY));
+    saveState();
+    renderHome();
+    showToast(`${minY}년 ~ ${maxY}년 범위를 적용했습니다.`);
+  });
+  document.getElementById('btnYearRecent5').addEventListener('click', () => {
+    const maxY = yearsDesc[0] || 2026;
+    const minY = maxY - 4;
+    syStart.value = String(Math.max(yearsAsc[0] || minY, minY));
+    syEnd.value = String(maxY);
+    state.subjectYears = new Set(yearsDesc.filter(y => y >= minY && y <= maxY));
+    saveState();
+    renderHome();
+  });
+  document.getElementById('btnYearRecent10').addEventListener('click', () => {
+    const maxY = yearsDesc[0] || 2026;
+    const minY = maxY - 9;
+    syStart.value = String(Math.max(yearsAsc[0] || minY, minY));
+    syEnd.value = String(maxY);
+    state.subjectYears = new Set(yearsDesc.filter(y => y >= minY && y <= maxY));
+    saveState();
+    renderHome();
+  });
+  document.getElementById('btnYearKec').addEventListener('click', () => {
+    const maxY = yearsDesc[0] || 2026;
+    syStart.value = '2021';
+    syEnd.value = String(maxY);
+    state.subjectYears = new Set(yearsDesc.filter(y => y >= 2021));
+    saveState();
+    renderHome();
+  });
+  document.getElementById('btnYearAll').addEventListener('click', () => {
+    state.subjectYears = new Set(yearsDesc);
+    if (yearsAsc.length > 0) {
+      syStart.value = String(yearsAsc[0]);
+      syEnd.value = String(yearsAsc[yearsAsc.length - 1]);
+    }
+    saveState();
+    renderHome();
+  });
+  document.getElementById('btnYearNone').addEventListener('click', () => {
+    state.subjectYears.clear();
+    saveState();
+    renderHome();
+  });
+
+  // Random dedup checkboxes (home panel + in-exam banner)
+  document.getElementById('chkRandomDedup').addEventListener('change', e => {
+    state.randomDedup = e.target.checked;
+    saveState();
+  });
+  document.getElementById('chkBannerRemoveDup').addEventListener('change', e => {
+    applyRandomDedupMode(e.target.checked);
+    showToast(e.target.checked ? '중복 문항을 제거하고 고유 문항으로 구성했습니다.' : '중복 제거를 해제했습니다.');
+  });
+
+  // Show/hide answer & explanation checkbox
+  document.getElementById('chkShowAnswerExp').addEventListener('change', e => {
+    state.showAnswerExp = e.target.checked;
+    if (state.showAnswerExp) state.manualExpOpen.clear();
+    saveState();
+    renderExam();
+  });
 
   // Dedup & Publisher filter events
   document.getElementById('chkDedup').addEventListener('change', e => {
@@ -894,6 +1257,7 @@ async function init() {
 
   const goHome = () => {
     state.currentSetId = null;
+    state.isRandomMock = false;
     document.getElementById('viewExam').classList.add('hidden');
     document.getElementById('viewTheoryDetail')?.classList.add('hidden');
     document.getElementById('mobileNav').classList.add('hidden');
@@ -942,6 +1306,7 @@ async function init() {
 
   document.getElementById('btnResetSession').addEventListener('click', () => {
     getVisibleQuestions().forEach(q => { delete state.answers[q.id]; });
+    state.manualExpOpen.clear();
     saveState();
     renderExam();
     showToast('현재 표시된 문항들의 풀이 기록을 초기화했습니다.');

@@ -1,5 +1,6 @@
 // =========================================================================
 // THEORY (CHEATKEY) + LOCAL PDF (IndexedDB + PDF.js) + LINKED PAST QUESTIONS
+// Integrated with CBT PWA v3.2.0 (showAnswerExp, manualExpOpen, dedup)
 // =========================================================================
 
 const THEORY_PDF_DB = 'electric_cbt_theory_pdf_db';
@@ -9,18 +10,19 @@ const THEORY_PREFS_KEY = 'electric_cbt_theory_prefs_v1';
 
 const theoryState = {
   map: null,
-  flatCheatkeys: [],       // Ordered list of all 208 cheatkeys for Prev/Next navigation
-  byId: {},                // ckId -> enriched cheatkey entry
-  byQid: {},               // questionId -> enriched cheatkey entry
+  flatCheatkeys: [],
+  byId: {},
+  byQid: {},
   selectedPartId: 'circuit',
   search: '',
   pageOffset: 0,
-  pdfMeta: null,           // { name, size, numPages }
-  pdfDoc: null,            // pdfjs PDFDocumentProxy
+  pdfMeta: null,
+  pdfDoc: null,
   pdfZoom: 1.0,
-  layout: 'stack',         // 'stack' | 'split'
+  layout: 'stack',
   activeCkId: null,
   quizFilter: 'all',       // 'all' | 'recent5' | 'unsolved'
+  quizDedup: true,
   quizPage: 0,
   quizPageSize: 10,
   renderToken: 0
@@ -35,6 +37,7 @@ function loadTheoryPrefs() {
     if (raw.selectedPartId) theoryState.selectedPartId = raw.selectedPartId;
     if (raw.layout === 'split' || raw.layout === 'stack') theoryState.layout = raw.layout;
     if (typeof raw.pdfZoom === 'number') theoryState.pdfZoom = raw.pdfZoom;
+    if (typeof raw.quizDedup === 'boolean') theoryState.quizDedup = raw.quizDedup;
   } catch (e) {}
 }
 
@@ -44,12 +47,12 @@ function saveTheoryPrefs() {
       pageOffset: theoryState.pageOffset,
       selectedPartId: theoryState.selectedPartId,
       layout: theoryState.layout,
-      pdfZoom: theoryState.pdfZoom
+      pdfZoom: theoryState.pdfZoom,
+      quizDedup: theoryState.quizDedup
     }));
   } catch (e) {}
 }
 
-// ---------- IndexedDB for Local Copyright-Safe PDF Storage ----------
 const TheoryPdfStore = {
   open() {
     return new Promise((resolve, reject) => {
@@ -116,16 +119,10 @@ async function loadPdfFromRecord(record) {
     return false;
   }
   try {
-    // Pass a copy of Uint8Array so PDF.js worker transfer doesn't detach stored buffer
     const bytes = new Uint8Array(record.buffer.slice(0));
-    const loadingTask = pdfjsLib.getDocument({ data: bytes });
-    const doc = await loadingTask.promise;
+    const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
     theoryState.pdfDoc = doc;
-    theoryState.pdfMeta = {
-      name: record.name,
-      size: record.size,
-      numPages: doc.numPages
-    };
+    theoryState.pdfMeta = { name: record.name, size: record.size, numPages: doc.numPages };
     updatePdfStatusUI();
     return true;
   } catch (err) {
@@ -175,7 +172,6 @@ async function handlePdfFileSelected(file) {
   }
 }
 
-// ---------- Theory Map Loading & Global Filter Sync ----------
 async function initTheoryModule() {
   loadTheoryPrefs();
   updatePdfStatusUI();
@@ -192,11 +188,9 @@ async function initTheoryModule() {
     return;
   }
 
-  // Try restoring previously saved PDF from IndexedDB silently
   try {
     const saved = await TheoryPdfStore.get();
     if (saved) {
-      // Wait briefly if pdfjsLib is still deferred
       if (typeof pdfjsLib === 'undefined') {
         setTimeout(() => loadPdfFromRecord(saved), 500);
       } else {
@@ -239,7 +233,6 @@ function buildTheoryLookups() {
   window.THEORY_BY_QID = theoryState.byQid;
 }
 
-// Filter a CheatKey's questionRefs using the user's current global filters (publisher, year, dedup)
 function getFilteredRefsForCheatkey(ck, extraFilter = 'all') {
   const allowedSessions = new Set(getFilteredSessions(false).map(s => s.setId));
   const sessionById = new Map((state.index?.sessions || []).map(s => [s.setId, s]));
@@ -251,17 +244,12 @@ function getFilteredRefsForCheatkey(ck, extraFilter = 'all') {
     const meta = sessionById.get(setId);
     if (!meta) continue;
     if (extraFilter === 'recent5' && meta.year < 2022) continue;
-    if (extraFilter === 'unsolved') {
-      const ans = state.answers[qid];
-      // Keep unsolved; for already-solved, we check exact correctness after loading, or keep unsolved here
-      if (ans) continue;
-    }
+    if (extraFilter === 'unsolved' && state.answers[qid]) continue;
     out.push({ setId, qid, meta });
   }
   return out;
 }
 
-// ---------- Render Theory Home (Parts -> Chapters -> CheatKeys) ----------
 window.renderTheoryHome = function renderTheoryHome() {
   if (!theoryState.map) return;
   updatePdfStatusUI();
@@ -270,7 +258,6 @@ window.renderTheoryHome = function renderTheoryHome() {
   const partTabs = document.getElementById('theoryPartTabs');
   const parts = theoryState.map.parts;
 
-  // Count visible questions per part under active filters
   const partCounts = {};
   for (const p of parts) {
     let cnt = 0;
@@ -362,7 +349,6 @@ window.renderTheoryHome = function renderTheoryHome() {
   }
 };
 
-// ---------- Open Theory Detail View (PDF + Linked Past Questions) ----------
 window.openTheoryDetail = async function openTheoryDetail(ckId) {
   const entry = theoryState.byId[ckId];
   if (!entry) return;
@@ -385,6 +371,11 @@ window.openTheoryDetail = async function openTheoryDetail(ckId) {
 
   document.getElementById('btnTdPrevCk').disabled = entry.flatIdx === 0;
   document.getElementById('btnTdNextCk').disabled = entry.flatIdx >= theoryState.flatCheatkeys.length - 1;
+
+  const chkExp = document.getElementById('chkTdShowAnswerExp');
+  if (chkExp) chkExp.checked = state.showAnswerExp;
+  const chkDedup = document.getElementById('chkTdQuizDedup');
+  if (chkDedup) chkDedup.checked = theoryState.quizDedup;
 
   applyTheoryLayout();
   renderTheoryPdfPages(entry);
@@ -422,10 +413,7 @@ async function renderTheoryPdfPages(entry) {
         </label>
       </div>
     `;
-    const inlineInput = document.getElementById('inputTheoryPdfInline');
-    if (inlineInput) {
-      inlineInput.addEventListener('change', e => handlePdfFileSelected(e.target.files[0]));
-    }
+    document.getElementById('inputTheoryPdfInline')?.addEventListener('change', e => handlePdfFileSelected(e.target.files[0]));
     return;
   }
 
@@ -466,8 +454,7 @@ async function renderTheoryPdfPages(entry) {
     pageWrap.appendChild(canvas);
     frag.appendChild(pageWrap);
 
-    const ctx = canvas.getContext('2d');
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
   }
 
   if (token !== theoryState.renderToken) return;
@@ -477,34 +464,38 @@ async function renderTheoryPdfPages(entry) {
 
 async function renderTheoryLinkedQuiz(entry) {
   const refs = getFilteredRefsForCheatkey(entry, theoryState.quizFilter);
-  const total = refs.length;
   const pageSize = theoryState.quizPageSize;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const listEl = document.getElementById('tdQuizList');
+  if (refs.length === 0) {
+    document.getElementById('tdQuizSummary').textContent = '연계 기출문제 (0문항)';
+    document.getElementById('tdQuizStat').textContent = '';
+    document.getElementById('tdQPageLbl').textContent = '0 / 0';
+    document.getElementById('btnTdQPrev').disabled = true;
+    document.getElementById('btnTdQNext').disabled = true;
+    listEl.innerHTML = '<div class="card" style="text-align:center;color:#64748b;">현재 필터 조건에 해당하는 연계 기출문제가 없습니다. 상단 필터나 출판사 설정을 조정해 보세요.</div>';
+    return;
+  }
+
+  // If dedup is enabled, fetch a slightly larger window (up to 3x pageSize) or dedup within loaded slice
+  const totalPages = Math.max(1, Math.ceil(refs.length / pageSize));
   if (theoryState.quizPage >= totalPages) theoryState.quizPage = totalPages - 1;
   if (theoryState.quizPage < 0) theoryState.quizPage = 0;
 
   const start = theoryState.quizPage * pageSize;
   const slice = refs.slice(start, start + pageSize);
 
-  document.getElementById('tdQuizSummary').textContent = `연계 기출문제 (총 ${total}문항)`;
-  document.getElementById('tdQPageLbl').textContent = total > 0 ? `${theoryState.quizPage + 1} / ${totalPages} 페이지 (${start + 1}~${start + slice.length}번)` : '0 / 0';
+  document.getElementById('tdQuizSummary').textContent = `연계 기출문제 (총 ${refs.length}문항)`;
+  document.getElementById('tdQPageLbl').textContent = `${theoryState.quizPage + 1} / ${totalPages} 페이지 (${start + 1}~${start + slice.length}번)`;
   document.getElementById('btnTdQPrev').disabled = theoryState.quizPage === 0;
-  document.getElementById('btnTdQNext').disabled = theoryState.quizPage >= totalPages - 1 || total === 0;
-
-  const listEl = document.getElementById('tdQuizList');
-  if (slice.length === 0) {
-    document.getElementById('tdQuizStat').textContent = '';
-    listEl.innerHTML = '<div class="card" style="text-align:center;color:#64748b;">현재 필터 조건에 해당하는 연계 기출문제가 없습니다. 상단 필터나 출판사 설정을 조정해 보세요.</div>';
-    return;
-  }
+  document.getElementById('btnTdQNext').disabled = theoryState.quizPage >= totalPages - 1;
 
   listEl.innerHTML = '<div class="card" style="text-align:center;color:#64748b;">연계 기출문제를 불러오는 중...</div>';
 
-  // Fetch only the unique sessions needed for this 10-question slice
   const neededSetIds = Array.from(new Set(slice.map(r => r.setId)));
   await Promise.all(neededSetIds.map(sid => fetchSession(sid).catch(() => null)));
 
-  const loadedQs = [];
+  let loadedQs = [];
   for (const r of slice) {
     const ds = state.loadedSessions[r.setId];
     if (!ds) continue;
@@ -512,16 +503,26 @@ async function renderTheoryLinkedQuiz(entry) {
     if (found) loadedQs.push({ ...found, _meta: r.meta });
   }
 
+  let dupRemovedCnt = 0;
+  if (theoryState.quizDedup && typeof analyzeDuplicates === 'function') {
+    const analysis = analyzeDuplicates(loadedQs);
+    dupRemovedCnt = analysis.dupCount;
+    loadedQs = analysis.uniqueList;
+  }
+
   let solved = 0, correct = 0;
   loadedQs.forEach(q => {
     const a = state.answers[q.id];
     if (a) { solved++; if (a === q.answer) correct++; }
   });
-  document.getElementById('tdQuizStat').textContent = `현재 페이지 정답 ${correct} / 풀이 ${solved}`;
+  document.getElementById('tdQuizStat').textContent = state.showAnswerExp
+    ? `정답 ${correct} / 풀이 ${solved}${dupRemovedCnt > 0 ? ` (중복 ${dupRemovedCnt}건 숨김)` : ''}`
+    : `풀이 ${solved} / ${loadedQs.length} (답·해설 숨김)`;
 
   const nums = ['①', '②', '③', '④'];
   listEl.innerHTML = loadedQs.map((q, idx) => {
     const chosen = state.answers[q.id];
+    const reveal = state.showAnswerExp || state.manualExpOpen.has(q.id);
     const meta = q._meta;
     const siblings = state.index.sessions.filter(s => s.duplicateGroup === meta.duplicateGroup);
     const hasExp = q.explanation && q.explanation.replace(/<[^>]+>/g, '').trim().length > 0;
@@ -537,6 +538,7 @@ async function renderTheoryLinkedQuiz(entry) {
             ${q.category ? `<span class="q-cat">${q.category}</span>` : ''}
           </div>
           <div class="q-head-right">
+            ${!state.showAnswerExp ? `<button type="button" data-td-exp="${q.id}" class="btn btn-outline btn-sm">${state.manualExpOpen.has(q.id) ? '해설 숨기기' : '해설 보기'}</button>` : ''}
             ${ytHref ? `<a href="${ytHref}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">해설 영상</a>` : ''}
             ${siblings.length > 1 ? `<button type="button" data-td-cross="${q.id}" class="btn btn-indigo btn-sm">교차 비교</button>` : ''}
             <button type="button" data-td-bm="${q.id}" class="btn btn-outline btn-sm">${state.bookmarks[q.id] ? '★ 북마크' : '☆ 북마크'}</button>
@@ -553,22 +555,24 @@ async function renderTheoryLinkedQuiz(entry) {
           ${q.choices.map((c, i) => {
             const val = i + 1;
             let cls = '';
-            if (chosen) {
+            if (reveal) {
               if (val === q.answer) cls = 'correct';
-              else if (val === chosen) cls = 'wrong';
+              else if (chosen && val === chosen) cls = 'wrong';
+            } else if (chosen && val === chosen) {
+              cls = 'selected';
             }
             return `<button type="button" data-tdq="${q.id}" data-tdch="${val}" class="choice-btn ${cls}"><span class="choice-num">${nums[i] || val}</span><span class="choice-body">${c}</span></button>`;
           }).join('')}
         </div>
-        ${chosen ? `
-          <div class="q-exp-box ${chosen === q.answer ? 'ok' : 'no'}">
+        ${reveal ? `
+          <div class="q-exp-box ${chosen ? (chosen === q.answer ? 'ok' : 'no') : 'info'}">
             <div class="q-exp-head">
-              <strong>${chosen === q.answer ? '정답입니다!' : '오답입니다'}</strong>
+              <strong>${chosen ? (chosen === q.answer ? '정답입니다!' : '오답입니다') : '정답 및 해설'}</strong>
               <span>정답: ${nums[q.answer - 1] || q.answer}</span>
             </div>
-            ${q.formula ? `<div class="q-formula"><strong>핵심 공식:</strong> ${q.formula}</div>` : ''}
-            ${q.tip ? `<div class="q-tip"><strong>암기/풀이 팁:</strong> ${q.tip}</div>` : ''}
-            <div class="q-exp-body">${hasExp ? q.explanation : '<span class="badge badge-amber">해설 준비 중</span> 추후 보강 예정입니다.'}</div>
+            ${q.formula && q.formula.trim() ? `<div class="q-formula"><strong>핵심 공식:</strong> ${q.formula}</div>` : ''}
+            ${q.tip && q.tip.trim() ? `<div class="q-tip"><strong>암기/풀이 팁:</strong> ${q.tip}</div>` : ''}
+            <div class="q-exp-body">${hasExp ? q.explanation : '<span class="badge badge-amber">해설 준비 중</span> 등록된 해설이 없습니다.'}</div>
           </div>
         ` : ''}
       </article>
@@ -578,9 +582,17 @@ async function renderTheoryLinkedQuiz(entry) {
   listEl.querySelectorAll('[data-tdq]').forEach(btn => {
     btn.addEventListener('click', () => {
       const qid = btn.getAttribute('data-tdq');
-      const val = Number(btn.getAttribute('data-tdch'));
-      state.answers[qid] = val;
+      state.answers[qid] = Number(btn.getAttribute('data-tdch'));
       saveState();
+      renderTheoryLinkedQuiz(entry);
+    });
+  });
+
+  listEl.querySelectorAll('[data-td-exp]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qid = btn.getAttribute('data-td-exp');
+      if (state.manualExpOpen.has(qid)) state.manualExpOpen.delete(qid);
+      else state.manualExpOpen.add(qid);
       renderTheoryLinkedQuiz(entry);
     });
   });
@@ -620,21 +632,28 @@ async function renderTheoryLinkedQuiz(entry) {
 async function launchTheoryCbtMode() {
   const entry = theoryState.byId[theoryState.activeCkId];
   if (!entry) return;
-  const refs = getFilteredRefsForCheatkey(entry, theoryState.quizFilter).slice(0, 40);
+  const refs = getFilteredRefsForCheatkey(entry, theoryState.quizFilter).slice(0, 60);
   if (refs.length === 0) {
     showToast('풀 수 있는 연계 기출문제가 없습니다.');
     return;
   }
-  showToast(`치트키 연계 기출 ${refs.length}문항을 CBT 모드로 불러오는 중...`);
+  showToast('치트키 연계 기출을 CBT 모드로 불러오는 중...');
   const needed = Array.from(new Set(refs.map(r => r.setId)));
   await Promise.all(needed.map(sid => fetchSession(sid).catch(() => null)));
-  const collected = [];
+  let collected = [];
   for (const r of refs) {
     const ds = state.loadedSessions[r.setId];
     if (!ds) continue;
     const found = ds.questions.find(x => x.id === r.qid);
     if (found) collected.push({ ...found, _meta: r.meta });
   }
+  if (theoryState.quizDedup && typeof buildUniqueRandomSet === 'function') {
+    collected = buildUniqueRandomSet(collected, 40);
+  } else {
+    collected = collected.slice(0, 40);
+  }
+  state.isRandomMock = false;
+  state.randomDupIds = new Set();
   document.getElementById('viewTheoryDetail').classList.add('hidden');
   launchSubjectExam(`[${entry.partName}] 치트키 ${entry.number}. ${entry.title}`, `치트키 연계 ${collected.length}문항`, collected);
 }
@@ -678,7 +697,7 @@ function bindTheoryEvents() {
     state.homeMode = 'theory';
     document.getElementById('tabModeRound').classList.remove('active');
     document.getElementById('tabModeSubject').classList.remove('active');
-    document.getElementById('tabModeTheory').classList.add('active');
+    document.getElementById('tabModeTheory')?.classList.add('active');
     renderHome();
   });
 
@@ -717,6 +736,21 @@ function bindTheoryEvents() {
 
   document.getElementById('btnTdLaunchCbt')?.addEventListener('click', launchTheoryCbtMode);
 
+  document.getElementById('chkTdShowAnswerExp')?.addEventListener('change', e => {
+    state.showAnswerExp = e.target.checked;
+    if (state.showAnswerExp) state.manualExpOpen.clear();
+    saveState();
+    const examChk = document.getElementById('chkShowAnswerExp');
+    if (examChk) examChk.checked = state.showAnswerExp;
+    if (theoryState.activeCkId) renderTheoryLinkedQuiz(theoryState.byId[theoryState.activeCkId]);
+  });
+
+  document.getElementById('chkTdQuizDedup')?.addEventListener('change', e => {
+    theoryState.quizDedup = e.target.checked;
+    saveTheoryPrefs();
+    if (theoryState.activeCkId) renderTheoryLinkedQuiz(theoryState.byId[theoryState.activeCkId]);
+  });
+
   document.querySelectorAll('#tdQuizFilterChips .chip').forEach(btn => {
     btn.addEventListener('click', () => {
       theoryState.quizFilter = btn.getAttribute('data-qfilter');
@@ -741,6 +775,5 @@ function bindTheoryEvents() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // Slight defer so app.js finishes loading state.index
   setTimeout(initTheoryModule, 120);
 });

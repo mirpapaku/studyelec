@@ -1,15 +1,15 @@
 {
-  "appVersion": "3.0.0",
+  "appVersion": "3.2.0",
   "updatedAt": "2026-11-20",
   "totalSessions": 170,
-  "totalQuestions": 16905,
+  "totalQuestions": 16706,
   "sources": [
     "김영북스",
     "다산에듀",
     "엔지니어랩",
     "엔트",
     "전기요금",
-    "전자문제집(미해설)",
+    "전자문제집",
     "테스트나라",
     "파워텔",
     "한솔아카데미",
@@ -2193,7 +2193,7 @@
       "source": "전기요금",
       "sourceSlug": "elec",
       "file": "data/2026_3_elec.json",
-      "questionCount": 120,
+      "questionCount": 100,
       "hasExplanation": true,
       "duplicateGroup": "2026_3",
       "subjectCounts": {
@@ -2201,8 +2201,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20,
-        "6과목: 전기응용 및 공사재료 [전기공사기사]": 20
+        "5과목: 전기설비기술기준": 20
       }
     },
     {
@@ -2294,7 +2293,7 @@
       "source": "전기요금",
       "sourceSlug": "elec",
       "file": "data/2026_2_elec.json",
-      "questionCount": 120,
+      "questionCount": 100,
       "hasExplanation": true,
       "duplicateGroup": "2026_2",
       "subjectCounts": {
@@ -2302,8 +2301,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20,
-        "6과목: 전기응용 및 공사재료 [전기공사기사]": 20
+        "5과목: 전기설비기술기준": 20
       }
     },
     {
@@ -2395,7 +2393,7 @@
       "source": "전기요금",
       "sourceSlug": "elec",
       "file": "data/2026_1_elec.json",
-      "questionCount": 120,
+      "questionCount": 100,
       "hasExplanation": true,
       "duplicateGroup": "2026_1",
       "subjectCounts": {
@@ -2403,8 +2401,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20,
-        "6과목: 전기응용 및 공사재료 [전기공사기사]": 20
+        "5과목: 전기설비기술기준": 20
       }
     },
     {
@@ -2516,7 +2513,7 @@
       "source": "전기요금",
       "sourceSlug": "elec",
       "file": "data/2025_3_elec.json",
-      "questionCount": 120,
+      "questionCount": 100,
       "hasExplanation": true,
       "duplicateGroup": "2025_3",
       "subjectCounts": {
@@ -2524,8 +2521,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20,
-        "6과목: 전기응용 및 공사재료 [전기공사기사]": 20
+        "5과목: 전기설비기술기준": 20
       }
     },
     {
@@ -2637,7 +2633,7 @@
       "source": "전기요금",
       "sourceSlug": "elec",
       "file": "data/2025_2_elec.json",
-      "questionCount": 120,
+      "questionCount": 100,
       "hasExplanation": true,
       "duplicateGroup": "2025_2",
       "subjectCounts": {
@@ -2645,8 +2641,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20,
-        "6과목: 전기응용 및 공사재료 [전기공사기사]": 20
+        "5과목: 전기설비기술기준": 20
       }
     },
     {
@@ -2758,7 +2753,7 @@
       "source": "전기요금",
       "sourceSlug": "elec",
       "file": "data/2025_1_elec.json",
-      "questionCount": 120,
+      "questionCount": 100,
       "hasExplanation": true,
       "duplicateGroup": "2025_1",
       "subjectCounts": {
@@ -2766,8 +2761,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20,
-        "6과목: 전기응용 및 공사재료 [전기공사기사]": 20
+        "5과목: 전기설비기술기준": 20
       }
     },
     {
@@ -4037,7 +4031,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2020_4_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 98,
       "hasExplanation": true,
       "duplicateGroup": "2020_4",
       "subjectCounts": {
@@ -4045,7 +4039,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 18
       }
     },
     {
@@ -4157,7 +4151,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2020_1_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 99,
       "hasExplanation": true,
       "duplicateGroup": "2020_1",
       "subjectCounts": {
@@ -4165,7 +4159,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 19
       }
     },
     {
@@ -4277,7 +4271,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2019_2_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 95,
       "hasExplanation": true,
       "duplicateGroup": "2019_2",
       "subjectCounts": {
@@ -4285,7 +4279,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 15
       }
     },
     {
@@ -4337,7 +4331,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2019_1_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 97,
       "hasExplanation": true,
       "duplicateGroup": "2019_1",
       "subjectCounts": {
@@ -4345,7 +4339,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 17
       }
     },
     {
@@ -4377,7 +4371,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2018_3_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 99,
       "hasExplanation": true,
       "duplicateGroup": "2018_3",
       "subjectCounts": {
@@ -4385,7 +4379,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 19
       }
     },
     {
@@ -4417,7 +4411,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2018_2_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 98,
       "hasExplanation": true,
       "duplicateGroup": "2018_2",
       "subjectCounts": {
@@ -4425,7 +4419,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 18
       }
     },
     {
@@ -4457,7 +4451,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2018_1_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 99,
       "hasExplanation": true,
       "duplicateGroup": "2018_1",
       "subjectCounts": {
@@ -4465,7 +4459,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 19
       }
     },
     {
@@ -4537,7 +4531,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2017_2_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 95,
       "hasExplanation": true,
       "duplicateGroup": "2017_2",
       "subjectCounts": {
@@ -4545,7 +4539,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 15
       }
     },
     {
@@ -4577,7 +4571,7 @@
       "source": "핵담",
       "sourceSlug": "haekdam",
       "file": "data/2017_1_haekdam.json",
-      "questionCount": 100,
+      "questionCount": 97,
       "hasExplanation": true,
       "duplicateGroup": "2017_1",
       "subjectCounts": {
@@ -4585,7 +4579,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 17
       }
     },
     {
@@ -4917,7 +4911,7 @@
       "source": "테스트나라",
       "sourceSlug": "testnara",
       "file": "data/2011_2_testnara.json",
-      "questionCount": 96,
+      "questionCount": 95,
       "hasExplanation": true,
       "duplicateGroup": "2011_2",
       "subjectCounts": {
@@ -4925,7 +4919,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 16
+        "5과목: 전기설비기술기준": 15
       }
     },
     {
@@ -5057,7 +5051,7 @@
       "source": "테스트나라",
       "sourceSlug": "testnara",
       "file": "data/2009_1_testnara.json",
-      "questionCount": 97,
+      "questionCount": 96,
       "hasExplanation": true,
       "duplicateGroup": "2009_1",
       "subjectCounts": {
@@ -5065,7 +5059,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 17
+        "5과목: 전기설비기술기준": 16
       }
     },
     {
@@ -5094,10 +5088,10 @@
       "round": 3,
       "roundLabel": "2008년 3회 (07.27)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2008_3_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 99,
       "hasExplanation": true,
       "duplicateGroup": "2008_3",
       "subjectCounts": {
@@ -5105,7 +5099,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 19
       }
     },
     {
@@ -5134,10 +5128,10 @@
       "round": 2,
       "roundLabel": "2008년 2회 (05.11)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2008_2_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 95,
       "hasExplanation": true,
       "duplicateGroup": "2008_2",
       "subjectCounts": {
@@ -5145,7 +5139,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 15
       }
     },
     {
@@ -5174,10 +5168,10 @@
       "round": 1,
       "roundLabel": "2008년 1회 (03.02)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2008_1_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 95,
       "hasExplanation": true,
       "duplicateGroup": "2008_1",
       "subjectCounts": {
@@ -5185,7 +5179,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 15
       }
     },
     {
@@ -5214,10 +5208,10 @@
       "round": 3,
       "roundLabel": "2007년 3회 (08.05)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2007_3_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 99,
       "hasExplanation": true,
       "duplicateGroup": "2007_3",
       "subjectCounts": {
@@ -5225,7 +5219,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 19
       }
     },
     {
@@ -5254,10 +5248,10 @@
       "round": 2,
       "roundLabel": "2007년 2회 (05.13)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2007_2_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 98,
       "hasExplanation": true,
       "duplicateGroup": "2007_2",
       "subjectCounts": {
@@ -5265,7 +5259,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 18
       }
     },
     {
@@ -5294,10 +5288,10 @@
       "round": 1,
       "roundLabel": "2007년 1회 (03.04)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2007_1_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 97,
       "hasExplanation": true,
       "duplicateGroup": "2007_1",
       "subjectCounts": {
@@ -5305,7 +5299,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 17
       }
     },
     {
@@ -5314,10 +5308,10 @@
       "round": 3,
       "roundLabel": "2006년 3회 (08.06)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2006_3_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 99,
       "hasExplanation": true,
       "duplicateGroup": "2006_3",
       "subjectCounts": {
@@ -5325,7 +5319,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 19
       }
     },
     {
@@ -5334,10 +5328,10 @@
       "round": 2,
       "roundLabel": "2006년 2회 (05.14)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2006_2_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 97,
       "hasExplanation": true,
       "duplicateGroup": "2006_2",
       "subjectCounts": {
@@ -5345,7 +5339,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 17
       }
     },
     {
@@ -5354,10 +5348,10 @@
       "round": 1,
       "roundLabel": "2006년 1회 (03.05)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2006_1_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 99,
       "hasExplanation": true,
       "duplicateGroup": "2006_1",
       "subjectCounts": {
@@ -5365,7 +5359,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 19
       }
     },
     {
@@ -5374,10 +5368,10 @@
       "round": 3,
       "roundLabel": "2005년 3회 (08.07)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2005_3_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 96,
       "hasExplanation": true,
       "duplicateGroup": "2005_3",
       "subjectCounts": {
@@ -5385,7 +5379,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 16
       }
     },
     {
@@ -5394,10 +5388,10 @@
       "round": 2,
       "roundLabel": "2005년 2회 (05.29)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2005_2_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 97,
       "hasExplanation": true,
       "duplicateGroup": "2005_2",
       "subjectCounts": {
@@ -5405,7 +5399,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 17
       }
     },
     {
@@ -5414,10 +5408,10 @@
       "round": 1,
       "roundLabel": "2005년 1회 (03.06)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2005_1_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 95,
       "hasExplanation": true,
       "duplicateGroup": "2005_1",
       "subjectCounts": {
@@ -5425,7 +5419,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 15
       }
     },
     {
@@ -5434,10 +5428,10 @@
       "round": 3,
       "roundLabel": "2004년 3회 (08.08)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2004_3_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 97,
       "hasExplanation": true,
       "duplicateGroup": "2004_3",
       "subjectCounts": {
@@ -5445,7 +5439,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 17
       }
     },
     {
@@ -5454,10 +5448,10 @@
       "round": 2,
       "roundLabel": "2004년 2회 (05.23)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2004_2_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 98,
       "hasExplanation": true,
       "duplicateGroup": "2004_2",
       "subjectCounts": {
@@ -5465,7 +5459,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 18
       }
     },
     {
@@ -5474,10 +5468,10 @@
       "round": 1,
       "roundLabel": "2004년 1회 (03.07)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2004_1_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 95,
       "hasExplanation": true,
       "duplicateGroup": "2004_1",
       "subjectCounts": {
@@ -5485,7 +5479,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 15
       }
     },
     {
@@ -5494,10 +5488,10 @@
       "round": 3,
       "roundLabel": "2003년 3회 (08.10)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2003_3_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 98,
       "hasExplanation": true,
       "duplicateGroup": "2003_3",
       "subjectCounts": {
@@ -5505,7 +5499,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 18
       }
     },
     {
@@ -5514,10 +5508,10 @@
       "round": 2,
       "roundLabel": "2003년 2회 (05.25)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2003_2_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 96,
       "hasExplanation": true,
       "duplicateGroup": "2003_2",
       "subjectCounts": {
@@ -5525,7 +5519,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 16
       }
     },
     {
@@ -5534,10 +5528,10 @@
       "round": 1,
       "roundLabel": "2003년 1회 (03.16)",
       "examType": "필기",
-      "source": "전자문제집(미해설)",
+      "source": "전자문제집",
       "sourceSlug": "elecbook",
       "file": "data/2003_1_elecbook.json",
-      "questionCount": 100,
+      "questionCount": 96,
       "hasExplanation": true,
       "duplicateGroup": "2003_1",
       "subjectCounts": {
@@ -5545,7 +5539,7 @@
         "2과목: 전력공학": 20,
         "3과목: 전기기기": 20,
         "4과목: 회로이론 및 제어공학": 20,
-        "5과목: 전기설비기술기준": 20
+        "5과목: 전기설비기술기준": 16
       }
     }
   ],
@@ -5554,7 +5548,6 @@
     "2과목: 전력공학",
     "3과목: 전기기기",
     "4과목: 회로이론 및 제어공학",
-    "5과목: 전기설비기술기준",
-    "6과목: 전기응용 및 공사재료 [전기공사기사]"
+    "5과목: 전기설비기술기준"
   ]
 }

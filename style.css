@@ -233,6 +233,35 @@ body {
   .mobile-idx { font-size: 12.5px; font-weight: 700; color: #475569; min-width: 58px; text-align: center; }
 }
 
+/* v3.2 Additions: Subject Year Filter, Random Dedup Banner, Show Answer/Exp Toggle */
+.text-green { color: var(--green); }
+.subject-year-box { margin-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
+.sy-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.sy-title-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.sy-summary { font-size: 12px; color: var(--blue); font-weight: 600; }
+.sy-range-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sy-tilde { font-weight: 700; color: var(--muted); }
+.sy-quick-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.year-chk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+.year-chk { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: #fff; font-size: 12.5px; font-weight: 600; color: #475569; cursor: pointer; user-select: none; }
+.year-chk.checked { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+.year-chk input { width: 14px; height: 14px; accent-color: var(--blue); cursor: pointer; margin: 0; }
+
+.random-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.toggle-sm { font-size: 12.5px; font-weight: 600; }
+.toggle-exam { background: #f1f5f9; border: 1px solid var(--border); border-radius: 9px; padding: 5px 10px; font-size: 12.5px; }
+.toggle-exam input { width: 15px; height: 15px; }
+
+.dup-banner { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; padding: 11px 14px; border-color: #bfdbfe; background: #eff6ff; }
+.dup-banner.has-dup { border-color: #fcd34d; background: #fffbeb; }
+.dup-banner-left { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.dup-banner-sub { font-size: 12px; color: var(--muted); }
+.dup-banner-right { display: flex; align-items: center; gap: 8px; }
+
+.choice-btn.selected { border-color: var(--blue); background: #eff6ff; color: #1e40af; font-weight: 600; }
+.omr-btn.answered { background: #dbeafe; color: #1d4ed8; }
+.q-exp-box.info { border-color: #bfdbfe; background: #f8fbff; }
+
 /* ================= THEORY (CHEATKEY) + PDF MODULE ================= */
 .mode-tabs-3 { grid-template-columns: repeat(3, 1fr); }
 .badge-teal { background: #ccfbf1; color: #0f766e; }
@@ -280,6 +309,7 @@ body {
 
 .td-quiz-bar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; padding: 12px 14px; }
 .td-quiz-bar-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.td-quiz-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .td-quiz-pager { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #f1f5f9; }
 
 @media (max-width: 960px) {
