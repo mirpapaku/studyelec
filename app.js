@@ -209,9 +209,13 @@ function renderHome() {
   document.getElementById('priorityWrap').classList.toggle('hidden', !state.dedupEnabled);
   document.getElementById('selectYear').classList.toggle('hidden', state.homeMode === 'subject');
   document.getElementById('statusChipsRow').classList.toggle('hidden', state.homeMode !== 'round');
+  const isSilgi = state.homeMode === 'silgi';
+  document.getElementById('pilgiStatsGrid')?.classList.toggle('hidden', isSilgi);
+  document.getElementById('pilgiFilterPanel')?.classList.toggle('hidden', isSilgi);
   document.getElementById('panelRoundMode').classList.toggle('hidden', state.homeMode !== 'round');
   document.getElementById('panelSubjectMode').classList.toggle('hidden', state.homeMode !== 'subject');
   document.getElementById('panelTheoryMode')?.classList.toggle('hidden', state.homeMode !== 'theory');
+  document.getElementById('panelSilgiMode')?.classList.toggle('hidden', !isSilgi);
 
   if (state.homeMode === 'round') {
     renderSessionGrid(displaySessions, dupCounts);
@@ -220,6 +224,8 @@ function renderHome() {
     renderGlobalSubjectMode(baseSessions);
   } else if (state.homeMode === 'theory' && typeof window.renderTheoryHome === 'function') {
     window.renderTheoryHome();
+  } else if (isSilgi && typeof window.renderSilgiHome === 'function') {
+    window.renderSilgiHome();
   }
 }
 
@@ -703,6 +709,16 @@ function renderSingleQuestion(questions) {
     ckBtn.classList.add('hidden');
   }
 
+  const slBtn = document.getElementById('qSilgiLinkBtn');
+  const slTopic = typeof window.getSilgiLinkForPilgi === 'function' ? window.getSilgiLinkForPilgi(q.id) : null;
+  if (slBtn && slTopic) {
+    slBtn.textContent = `⚡ 실기 연계 (${slTopic.silgiTotal}문항 · ${slTopic.name})`;
+    slBtn.classList.remove('hidden');
+    slBtn.onclick = () => { if (typeof window.openSilgiPreviewModal === 'function') window.openSilgiPreviewModal(q.id); };
+  } else if (slBtn) {
+    slBtn.classList.add('hidden');
+  }
+
   // Individual peek button when global "답·해설 보기" is unchecked
   const btnOneExp = document.getElementById('btnToggleOneExp');
   if (!state.showAnswerExp) {
@@ -872,6 +888,10 @@ function renderBatch20(questions) {
             ${isDup ? `<span class="badge badge-amber">중복 문항</span>` : ''}
             ${state.examMode === 'subject_set' ? `<span class="badge badge-slate">${formatRoundTitle(meta)} · ${meta.source}</span>` : ''}
             <span class="q-subj">${q.subject}</span>
+            ${(() => {
+              const st = typeof window.getSilgiLinkForPilgi === 'function' ? window.getSilgiLinkForPilgi(q.id) : null;
+              return st ? `<button type="button" data-batch-silgi="${q.id}" class="badge badge-silgi-link btn-chip">⚡ 실기 연계 (${st.silgiTotal}문항)</button>` : '';
+            })()}
           </div>
           <div class="q-head-right">
             ${!state.showAnswerExp ? `<button type="button" data-batch-exp="${q.id}" class="btn btn-outline btn-sm">${state.manualExpOpen.has(q.id) ? '해설 숨기기' : '해설 보기'}</button>` : ''}
@@ -932,6 +952,14 @@ function renderBatch20(questions) {
       const qid = btn.getAttribute('data-batch-cross');
       const found = slice.find(x => x.id === qid);
       if (found) openCrossCheckForQuestion(found);
+    });
+  });
+
+  listEl.querySelectorAll('[data-batch-silgi]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (typeof window.openSilgiPreviewModal === 'function') {
+        window.openSilgiPreviewModal(btn.getAttribute('data-batch-silgi'));
+      }
     });
   });
 
@@ -1018,11 +1046,21 @@ function setupScratchpad() {
   return resize;
 }
 
-function triggerOfflineCache(includeImages) {
+function triggerOfflineCache(mode) {
   document.getElementById('modalOffline').classList.add('hidden');
   document.getElementById('offlineBar').classList.remove('hidden');
+  const includePilgiImg = (mode === true || mode === 'pilgi_all' || mode === 'all_everything');
+  const includeSilgi = (mode === 'all_json' || mode === 'all_everything');
+  const includeSilgiImg = (mode === 'all_everything');
   const urls = ['./data/index.json', './data/theory_map.json', ...state.index.sessions.map(s => './' + s.file)];
-  if (includeImages && Array.isArray(state.index.imageAssets)) urls.push(...state.index.imageAssets);
+  if (includePilgiImg && Array.isArray(state.index.imageAssets)) urls.push(...state.index.imageAssets);
+  if (includeSilgi && window.SILGI_STATE?.index) {
+    urls.push('./data/silgi/index.json', './data/silgi/link_map.json');
+    urls.push(...(window.SILGI_STATE.index.sessions || []).map(s => './' + s.file));
+    if (includeSilgiImg && Array.isArray(window.SILGI_STATE.index.imageAssets)) {
+      urls.push(...window.SILGI_STATE.index.imageAssets);
+    }
+  }
   if (navigator.serviceWorker && navigator.serviceWorker.controller) {
     document.getElementById('offlineStatus').textContent = `오프라인 저장 시작 (${urls.length}개 파일)...`;
     navigator.serviceWorker.controller.postMessage({ type: 'CACHE_URLS', urls });
@@ -1145,11 +1183,14 @@ async function init() {
     document.getElementById('tabModeRound').classList.toggle('active', mode === 'round');
     document.getElementById('tabModeSubject').classList.toggle('active', mode === 'subject');
     document.getElementById('tabModeTheory')?.classList.toggle('active', mode === 'theory');
+    document.getElementById('tabModeSilgi')?.classList.toggle('active', mode === 'silgi');
     renderHome();
   };
+  window.setHomeModeTab = setHomeTab;
   document.getElementById('tabModeRound').addEventListener('click', () => setHomeTab('round'));
   document.getElementById('tabModeSubject').addEventListener('click', () => setHomeTab('subject'));
   document.getElementById('tabModeTheory')?.addEventListener('click', () => setHomeTab('theory'));
+  document.getElementById('tabModeSilgi')?.addEventListener('click', () => setHomeTab('silgi'));
 
   // Subject year range & quick buttons
   document.getElementById('btnApplyYearRange').addEventListener('click', () => {
@@ -1259,6 +1300,7 @@ async function init() {
     state.currentSetId = null;
     state.isRandomMock = false;
     document.getElementById('viewExam').classList.add('hidden');
+    document.getElementById('viewSilgiExam')?.classList.add('hidden');
     document.getElementById('viewTheoryDetail')?.classList.add('hidden');
     document.getElementById('mobileNav').classList.add('hidden');
     document.getElementById('viewHome').classList.remove('hidden');
@@ -1332,18 +1374,26 @@ async function init() {
 
   document.getElementById('btnOfflineModal').addEventListener('click', () => document.getElementById('modalOffline').classList.remove('hidden'));
   document.getElementById('btnCloseOffline').addEventListener('click', () => document.getElementById('modalOffline').classList.add('hidden'));
-  document.getElementById('btnCacheJsonOnly').addEventListener('click', () => triggerOfflineCache(false));
-  document.getElementById('btnCacheEverything').addEventListener('click', () => triggerOfflineCache(true));
+  document.getElementById('btnCacheJsonOnly').addEventListener('click', () => triggerOfflineCache('pilgi_json'));
+  document.getElementById('btnCacheEverything').addEventListener('click', () => triggerOfflineCache('pilgi_all'));
+  document.getElementById('btnCacheAllJson')?.addEventListener('click', () => triggerOfflineCache('all_json'));
+  document.getElementById('btnCacheAllEverything')?.addEventListener('click', () => triggerOfflineCache('all_everything'));
 
   document.getElementById('btnBackup').addEventListener('click', () => document.getElementById('modalBackup').classList.remove('hidden'));
   document.getElementById('btnCloseBackup').addEventListener('click', () => document.getElementById('modalBackup').classList.add('hidden'));
   document.getElementById('btnExportBackup').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({ answers: state.answers, bookmarks: state.bookmarks }, null, 2)], { type: 'application/json' });
+    const payload = {
+      answers: state.answers,
+      bookmarks: state.bookmarks,
+      silgiGrades: window.SILGI_STATE?.grades || {},
+      silgiBookmarks: window.SILGI_STATE?.bookmarks || {}
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = '전기기사_CBT_학습기록_백업.json';
+    a.download = '전기기사_CBT_필기실기_학습기록_백업.json';
     a.click();
-    showToast('학습 기록 백업 파일을 내려받았습니다.');
+    showToast('필기+실기 학습 기록 백업 파일을 내려받았습니다.');
   });
   document.getElementById('inputImportBackup').addEventListener('change', e => {
     const file = e.target.files[0];
@@ -1354,11 +1404,16 @@ async function init() {
         const parsed = JSON.parse(r.result);
         if (parsed.answers) state.answers = parsed.answers;
         if (parsed.bookmarks) state.bookmarks = parsed.bookmarks;
+        if (window.SILGI_STATE) {
+          if (parsed.silgiGrades) window.SILGI_STATE.grades = parsed.silgiGrades;
+          if (parsed.silgiBookmarks) window.SILGI_STATE.bookmarks = parsed.silgiBookmarks;
+          if (typeof saveSilgiState === 'function') saveSilgiState();
+        }
         saveState();
         renderHome();
         if (!document.getElementById('viewExam').classList.contains('hidden')) renderExam();
         document.getElementById('modalBackup').classList.add('hidden');
-        showToast('학습 기록을 복원했습니다.');
+        showToast('필기+실기 학습 기록을 복원했습니다.');
       } catch (err) {
         showToast('올바른 백업 JSON 파일이 아닙니다.');
       }
