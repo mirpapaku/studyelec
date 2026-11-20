@@ -1,2 +1,2 @@
-# studyelec
-studyelec
+# study
+study
