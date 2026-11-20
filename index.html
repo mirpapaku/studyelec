@@ -17,7 +17,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-<link rel="stylesheet" href="./style.css?v=5.1">
+<link rel="stylesheet" href="./style.css?v=5.2">
 </head>
 <body>
 <div class="pwa-loader" id="pwaLoader" role="status" aria-live="polite">
@@ -35,7 +35,7 @@
     <div class="brand-row">
       <div class="brand-title">
         <span>⚡ 전기기사 필기+실기 완전통합</span>
-        <span class="ver-badge">v5.1</span>
+        <span class="ver-badge">v5.2</span>
         <span class="brand-sub">필기 16,706 + 실기 2,928 = 19,634문항</span>
       </div>
     </div>
@@ -232,11 +232,11 @@
 
         <div class="filter-row">
           <span class="filter-label">실기 교재</span>
-          <button type="button" class="pill prac-pill active" data-pkind="all" onclick="setPKind('all', this)">전체 (2,928)</button>
-          <button type="button" class="pill prac-pill" data-pkind="dasan" onclick="setPKind('dasan', this)">다산에듀 (702)</button>
-          <button type="button" class="pill prac-pill" data-pkind="hansol" onclick="setPKind('hansol', this)">한솔아카데미 (515)</button>
-          <button type="button" class="pill prac-pill" data-pkind="seoulgong" onclick="setPKind('seoulgong', this)">서울공과학원 (763)</button>
-          <button type="button" class="pill prac-pill" data-pkind="testnara" onclick="setPKind('testnara', this)">테스트나라 (948)</button>
+          <button type="button" class="pill prac-pill active" data-pkind="all" onclick="setPKind('all')">전체 (2,928)</button>
+          <button type="button" class="pill prac-pill" data-pkind="dasan" onclick="setPKind('dasan')">다산에듀 (702)</button>
+          <button type="button" class="pill prac-pill" data-pkind="hansol" onclick="setPKind('hansol')">한솔아카데미 (515)</button>
+          <button type="button" class="pill prac-pill" data-pkind="seoulgong" onclick="setPKind('seoulgong')">서울공과학원 (763)</button>
+          <button type="button" class="pill prac-pill" data-pkind="testnara" onclick="setPKind('testnara')">테스트나라 (948)</button>
           <select class="ctrl-select" id="selSilgiCat" onchange="applyFilters()">
             <option value="all">실기 8대 단원 전체</option>
           </select>
@@ -369,6 +369,6 @@
   </div>
 </div>
 
-<script src="./app.js?v=5.1" defer></script>
+<script src="./app.js?v=5.2" defer></script>
 </body>
 </html>

@@ -49,7 +49,7 @@ let state = {
   subj: 'all',
   ch: 'all',
   prios: new Set(),
-  pkind: 'all',
+  pkinds: new Set(),
   silgiCat: 'all',
   unifiedOrder: 'paired',
   dupMode: 'all',
@@ -729,7 +729,7 @@ function updateFilterSummaryChips() {
       html += `<span class="badge ${cls}">${lbl}</span>`;
     });
   }
-  if (state.mode !== 'written' && state.pkind !== 'all') html += `<span class="badge b-pw">${(KIND_LABELS[state.pkind] || ['실기'])[0]}</span>`;
+  if (state.mode !== 'written' && state.pkinds.size > 0) { Array.from(state.pkinds).forEach(pk => { const [kl, kc] = KIND_LABELS[pk] || [pk, 'b-pw']; html += `<span class="badge ${kc}">${kl}</span>`; }); }
   if (state.onlyLinked) html += `<span class="badge b-link">🔥 실기연계만</span>`;
   if (state.dupMode !== 'all') html += `<span class="badge b-uniq">${state.dupMode === 'dedup' ? '중복소거' : '고유1회'}</span>`;
   if (kw) html += `<span class="badge b-dup">검색: "${esc(kw)}"</span>`;
@@ -841,11 +841,24 @@ function setPrio(val) {
   applyFilters();
 }
 
-function setPKind(val, el) {
-  state.pkind = val;
+function syncPKindButtonsUI() {
+  const isAll = state.pkinds.size === 0;
+  document.querySelectorAll('[data-pkind]').forEach(b => {
+    const v = b.getAttribute('data-pkind');
+    b.classList.toggle('active', v === 'all' ? isAll : state.pkinds.has(v));
+  });
+}
+
+function setPKind(val) {
+  if (val === 'all') {
+    state.pkinds.clear();
+  } else {
+    if (state.pkinds.has(val)) state.pkinds.delete(val);
+    else state.pkinds.add(val);
+    if (state.pkinds.size >= 4) state.pkinds.clear();
+  }
   state.mockIds = null;
-  document.querySelectorAll('[data-pkind]').forEach(b => b.classList.remove('active'));
-  if (el) el.classList.add('active');
+  syncPKindButtonsUI();
   state.page = 1;
   applyFilters();
 }
@@ -919,7 +932,7 @@ function resetAllFilters() {
   state.subj = 'all';
   state.ch = 'all';
   state.prios.clear();
-  state.pkind = 'all';
+  state.pkinds.clear();
   state.dupMode = 'all';
   state.onlyLinked = false;
   state.bmOnly = false;
@@ -928,7 +941,7 @@ function resetAllFilters() {
 
   document.querySelectorAll('[data-subj]').forEach(b => b.classList.toggle('active', b.getAttribute('data-subj') === 'all'));
   syncPrioButtonsUI();
-  document.querySelectorAll('[data-pkind]').forEach(b => b.classList.toggle('active', b.getAttribute('data-pkind') === 'all'));
+  syncPKindButtonsUI();
   document.querySelectorAll('[data-dup]').forEach(b => b.classList.toggle('active', b.getAttribute('data-dup') === 'all'));
   document.getElementById('btnOnlyLinked')?.classList.remove('active');
   document.getElementById('btnBmOnly')?.classList.remove('active');
@@ -990,7 +1003,7 @@ function filterSingleQuestion(q, ses, ch, silgiCat, kw) {
     }
     if (kw && !q._search.includes(kw)) return false;
   } else {
-    if (state.pkind !== 'all' && q.kind !== state.pkind) return false;
+    if (state.pkinds.size > 0 && !state.pkinds.has(q.kind)) return false;
     if (silgiCat !== 'all' && q.cat !== silgiCat) return false;
     if (ses !== 'all' && q.ses_short !== ses && q.ses !== ses) return false;
     if (kw && !q._search.includes(kw)) return false;
@@ -1339,11 +1352,9 @@ function renderPage() {
         const ansHtml = showAnsBox
           ? `<div class="ans-zone"><textarea class="lined-textarea" rows="2" placeholder="서술형 답안 또는 계산과정을 직접 작성하세요 (자동 저장)..." data-ans-id="${q.id}" oninput="onPracInput(this)">${ansVal}</textarea></div>`
           : '';
-        const wLinkBadge = (q.wl && q.wl.length)
-          ? `<span class="badge b-wlink" onclick="toggleEl('wdraw_${q.id}')">📘 필기연계 ${q.wl.length}건 ▾</span>`
-          : '';
+        const wLinkBadge = '';
         const pairedTag = isPaired
-          ? `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d;">🔗 위 필기문제 직결 실기</span>`
+          ? `<span class="badge badge-paired-silgi">🔧 위 필기문제 직결 실기</span>`
           : '';
         const dupListHtml = q.dups && q.dups.length
           ? `<div class="dup-list" id="dups_${q.id}_${i}"><strong>동일 회차 실기 출처:</strong> ${esc(q.dups.join(' · '))}</div>` : '';
@@ -1375,7 +1386,7 @@ function renderPage() {
           ${ansHtml}
           ${dupListHtml}
           ${solPanelHtml}
-          ${renderWrittenDrawerForPrac(q)}
+          
         </article>`;
       }
     }).join('');
