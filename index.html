@@ -1,753 +1,374 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="theme-color" content="#2563eb" />
-  <title>전기기사 필기·실기 통합 CBT PWA v4</title>
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-  <link rel="stylesheet" href="./style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" id="metaThemeColor" content="#ca8a04">
+<meta name="description" content="전기기사 필기(16,706문항)·실기(2,928문항)·전트키 이론 완전통합 오프라인 학습 PWA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="전기기사">
+<title>전기기사 필기+실기 완전통합</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icons/favicon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<link rel="stylesheet" href="./style.css?v=5">
 </head>
 <body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <button id="btnHome" type="button" class="brand">
-        <span class="brand-icon">전</span>
-        <div class="brand-text">
-          <h1>전기기사 통합 CBT</h1>
-          <p class="subtitle">필기·실기 양방향 연계 · 전트키 치트키 · 실기 4대교재 · 오프라인 PWA</p>
-        </div>
-      </button>
-      <div class="topbar-actions">
-        <button id="btnBackup" type="button" class="btn btn-outline">기록 백업</button>
-        <button id="btnOfflineModal" type="button" class="btn btn-primary">오프라인 저장</button>
+<div class="pwa-loader" id="pwaLoader" role="status" aria-live="polite">
+  <div class="pwa-spinner"></div>
+  <div class="pwa-loader-title">⚡ 전기기사 완전통합</div>
+  <div class="pwa-loader-sub" id="pwaLoaderSub">필기 16,706 + 실기 2,928문항 데이터를 불러오는 중...</div>
+</div>
+
+<!-- Floating button when in Full Focus (Zen) Mode -->
+<button type="button" class="zen-restore-btn" onclick="toggleZenMode()">🛠️ 상단바·필터 다시 보이기</button>
+
+<!-- Sticky Top Bar -->
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <div class="brand-row">
+      <div class="brand-title">
+        <span>⚡ 전기기사 필기+실기 완전통합</span>
+        <span class="ver-badge">v5</span>
+        <span class="brand-sub">필기 16,706 + 실기 2,928 = 19,634문항</span>
       </div>
     </div>
-    <div id="offlineBar" class="offline-bar hidden">
-      <div class="container">
-        <div class="offline-bar-row">
-          <span id="offlineStatus">오프라인 저장 준비 중...</span>
-          <span id="offlinePct">0%</span>
-        </div>
-        <div class="progress-track"><div id="offlineFill" class="progress-fill"></div></div>
+
+    <div class="main-tabs" role="tablist">
+      <button type="button" class="tab-btn active" id="tabWritten" onclick="switchMode('written')">📝 필기 (16,706)</button>
+      <button type="button" class="tab-btn prac-tab" id="tabPrac" onclick="switchMode('practical')">🔧 실기 (2,928)</button>
+      <button type="button" class="tab-btn unified-tab" id="tabLinked" onclick="switchMode('unified')">🔗 필기+실기 함께</button>
+      <button type="button" class="tab-btn theory-tab" id="tabTheory" onclick="switchMode('theory')">📖 전트키 이론</button>
+    </div>
+
+    <div class="top-actions">
+      <button type="button" class="btn" id="btnToggleFilter" onclick="toggleFilterPanel()">🔼 필터 숨김</button>
+      <button type="button" class="btn" id="btnStudyMode" onclick="toggleStudyMode()">📖 해설표시: ON</button>
+      <button type="button" class="btn" id="btnAutoPrac" onclick="toggleAutoPracDrawer()" title="필기 문제 아래에 연계된 실기 문제와 정답·해설을 자동으로 펼쳐서 함께 공부합니다">🔗 실기연계 자동펼침</button>
+      <button type="button" class="btn" id="btnDashboard" onclick="toggleDashboard()">📊 목차·현황</button>
+      <button type="button" class="btn" id="btnSettings" onclick="toggleSettings()">🎛️ 폰트·간격</button>
+      <button type="button" class="btn" id="btnMock" onclick="startMockExam()">🎲 모의고사</button>
+      <button type="button" class="btn" id="btnBmOnly" onclick="toggleBookmarkOnly()">⭐ 북마크</button>
+      <button type="button" class="btn" id="btnSilgiPdfTop" onclick="openPdfModal('silgi')" title="실기 단답·요약 PDF 연결 및 열람">📄 단답PDF</button>
+      <button type="button" class="btn" id="btnZen" onclick="toggleZenMode()" title="상단바와 필터를 모두 숨기고 문제에만 집중합니다">👁️ 집중모드</button>
+      <button type="button" class="btn" id="btnPwaInstall" title="홈 화면에 앱 설치">📲 앱 설치</button>
+      <button type="button" class="btn" onclick="toggleDark()" title="다크모드 전환">🌙</button>
+      <button type="button" class="btn" onclick="window.print()" title="현재 페이지 인쇄">🖨️</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Collapsible Quick-Jump Dashboard -->
+  <section class="dashboard-drawer" id="dashboardPanel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+      <strong style="font-size:14px;">📊 전기기사 필기·실기 통합 목차 및 바로가기 대시보드</strong>
+      <button type="button" class="btn" onclick="toggleDashboard()">닫기 ✕</button>
+    </div>
+    <div class="dash-kpi-grid">
+      <div class="dash-kpi">
+        <div class="dash-kpi-lbl">필기 통합 DB (2003~2026)</div>
+        <div class="dash-kpi-val">16,706문항 (10개 출처)</div>
+      </div>
+      <div class="dash-kpi">
+        <div class="dash-kpi-lbl">실기 4대 교재 (2008~2026)</div>
+        <div class="dash-kpi-val">2,928문항 (167회차 · WebP)</div>
+      </div>
+      <div class="dash-kpi">
+        <div class="dash-kpi-lbl">전트키 이론 + 치트키</div>
+        <div class="dash-kpi-val">6파트 · 54챕터 · 208치트키</div>
+      </div>
+      <div class="dash-kpi">
+        <div class="dash-kpi-lbl">필기↔실기 상호 연계</div>
+        <div class="dash-kpi-val" id="kpiLinkedCount">양방향 자동연계 탑재</div>
       </div>
     </div>
-  </header>
 
-  <main class="container main-wrap">
-    <!-- HOME VIEW -->
-    <section id="viewHome">
-      <!-- Mode Switcher (4 Tabs: 필기 3탭 + 독립 실기 탭) -->
-      <div class="mode-tabs mode-tabs-4">
-        <button id="tabModeRound" type="button" class="mode-tab active">회차별 풀기</button>
-        <button id="tabModeSubject" type="button" class="mode-tab">과목별 집중 풀기</button>
-        <button id="tabModeTheory" type="button" class="mode-tab">이론(치트키) + 기출</button>
-        <button id="tabModeSilgi" type="button" class="mode-tab mode-tab-silgi">실기 기출 + 단답</button>
+    <div class="dash-sec-head">
+      <span>📚 24개 핵심 연계 단원별 필기+실기 통합 바로가기 (클릭 시 해당 단원으로 즉시 필터링)</span>
+      <span style="font-size:11.5px; color:var(--muted);">현재 탭 유지 또는 필기+실기 함께보기로 전환 가능</span>
+    </div>
+    <div class="dash-grid-chapters" id="dashChapterGrid"></div>
+
+    <div class="dash-sec-head" style="margin-top:14px;">
+      <span>🗓️ 실기 연도·회차별 기출 바로가기 (2008~2026년 · 4대 출처 통합)</span>
+    </div>
+    <div class="dash-grid-sessions" id="dashSessionGrid"></div>
+  </section>
+
+  <!-- Typography & Spacing Controls -->
+  <section class="settings-panel" id="settingsPanel">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <strong style="font-size:13.5px;">🎛️ 실시간 글자 크기 및 간격 조절 (필기·실기 공통 / 자동 저장)</strong>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="font-size:12px; cursor:pointer;"><input type="checkbox" id="chkSyncExp" checked onchange="updateStyles()"> 해설 크기 -1.5px 연동</label>
+        <button type="button" class="btn" style="padding:4px 8px; font-size:11.5px;" onclick="resetStyles()">초기화</button>
+        <button type="button" class="btn" style="padding:4px 8px; font-size:11.5px;" onclick="toggleSettings()">닫기 ✕</button>
       </div>
-
-      <!-- Pilgi Summary Stats -->
-      <div id="pilgiStatsGrid" class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-label">현재 표시 회차</span>
-          <strong id="statSessions" class="stat-val">-</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">현재 표시 문항</span>
-          <strong id="statQuestions" class="stat-val">-</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">교차 검증 그룹</span>
-          <strong id="statDupGroups" class="stat-val text-indigo">-</strong>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">해설 포함 회차</span>
-          <strong id="statExpSessions" class="stat-val text-green">-</strong>
-        </div>
+    </div>
+    <div class="settings-grid">
+      <div class="slider-item">
+        <label><span>문제·보기 글자 크기</span><span id="valQFont">15.5px</span></label>
+        <input type="range" id="rngQFont" min="13" max="24" step="0.5" value="15.5" oninput="updateStyles()">
       </div>
-
-      <!-- Global Filter Panel (Applies to Pilgi Round & Subject modes) -->
-      <div id="pilgiFilterPanel" class="filter-panel card">
-        <div class="filter-row">
-          <div class="dedup-box">
-            <label class="toggle-label">
-              <input id="chkDedup" type="checkbox" />
-              <span>출판사별 중복 연도·회차 자동 제거</span>
-            </label>
-            <div id="priorityWrap" class="priority-wrap hidden">
-              <span class="priority-txt">우선 유지 출판사:</span>
-              <select id="selectPriority" class="select-input select-sm"></select>
-            </div>
-          </div>
-
-          <div class="filter-selects">
-            <select id="selectYear" class="select-input">
-              <option value="all">모든 연도</option>
-            </select>
-            <input id="searchInput" type="search" placeholder="연도, 출처 검색..." class="search-input" />
-          </div>
-        </div>
-
-        <!-- Multi-Publisher Toggle Chips -->
-        <div class="pub-filter-wrap">
-          <div class="pub-filter-head">
-            <span class="pub-label">출판사 선택 (켜고 끄기)</span>
-            <div class="pub-quick">
-              <button id="btnPubAll" type="button" class="link-btn">전체 선택</button>
-              <button id="btnPubNone" type="button" class="link-btn">전체 해제</button>
-            </div>
-          </div>
-          <div id="publisherChips" class="chips"></div>
-        </div>
-
-        <!-- Status Chips (Round mode) -->
-        <div id="statusChipsRow" class="chips">
-          <button type="button" data-filter="all" class="chip active">전체</button>
-          <button type="button" data-filter="duplicate" class="chip">중복(교차 검증)</button>
-          <button type="button" data-filter="wrong" class="chip">풀이 기록 있음</button>
-        </div>
+      <div class="slider-item">
+        <label><span>해설·풀이 글자 크기</span><span id="valExpFont">14px</span></label>
+        <input type="range" id="rngExpFont" min="11.5" max="22" step="0.5" value="14" oninput="updateStyles()">
       </div>
-
-      <!-- Panel A: Session Grid -->
-      <div id="panelRoundMode">
-        <div id="sessionGrid" class="session-grid"></div>
+      <div class="slider-item">
+        <label><span>문제 ↔ 해설/답안란 간격</span><span id="valQExpGap">12px</span></label>
+        <input type="range" id="rngQExpGap" min="4" max="44" step="2" value="12" oninput="updateStyles()">
       </div>
+      <div class="slider-item">
+        <label><span>문제 카드 간격</span><span id="valQGap">16px</span></label>
+        <input type="range" id="rngQGap" min="6" max="56" step="2" value="16" oninput="updateStyles()">
+      </div>
+      <div class="slider-item">
+        <label><span>줄간격 (행간)</span><span id="valLineH">1.62</span></label>
+        <input type="range" id="rngLineH" min="1.35" max="2.0" step="0.05" value="1.62" oninput="updateStyles()">
+      </div>
+    </div>
+  </section>
 
-      <!-- Panel B: Global Subject Mode -->
-      <div id="panelSubjectMode" class="hidden">
-        <!-- Year Range + Checkboxes Filter for Subject Mode -->
-        <div id="subjectYearFilterBox" class="card subject-year-box">
-          <div class="sy-head">
-            <div class="sy-title-wrap">
-              <strong>과목별 모의고사 연도 선택</strong>
-              <span id="sySelectedSummary" class="sy-summary"></span>
-            </div>
-            <div class="sy-range-row">
-              <select id="syRangeStart" class="select-input select-sm" aria-label="시작 연도"></select>
-              <span class="sy-tilde">~</span>
-              <select id="syRangeEnd" class="select-input select-sm" aria-label="끝 연도"></select>
-              <button id="btnApplyYearRange" type="button" class="btn btn-dark btn-sm">범위 적용</button>
-            </div>
-          </div>
-          <div class="sy-quick-row">
-            <button id="btnYearRecent5" type="button" class="chip">최근 5년</button>
-            <button id="btnYearRecent10" type="button" class="chip">최근 10년</button>
-            <button id="btnYearKec" type="button" class="chip">KEC 이후(2021~)</button>
-            <button id="btnYearAll" type="button" class="link-btn">전체 선택</button>
-            <button id="btnYearNone" type="button" class="link-btn">전체 해제</button>
-          </div>
-          <div id="subjectYearCheckboxes" class="year-chk-grid"></div>
+  <!-- Theory (전트키 이론 + 치트키) Panel -->
+  <section class="theory-panel" id="theoryPanel">
+    <div class="pdf-reserve-bar" style="border-style:solid;">
+      <div class="pdf-reserve-info">
+        <span class="badge badge-ck" id="theoryPdfBadge">전트키 PDF 미연결</span>
+        <strong id="theoryPdfStatus">전트키 이론 PDF를 기기에 1회 연결하면 치트키별 본문이 바로 열립니다</strong>
+      </div>
+      <div class="pdf-reserve-actions">
+        <label class="btn active file-btn-lbl">
+          PDF 파일 선택
+          <input type="file" accept="application/pdf" style="display:none;" onchange="if(this.files[0]) handlePdfUpload('theory', this.files[0]); this.value='';">
+        </label>
+        <button type="button" class="btn" id="btnOpenTheoryPdf" style="display:none;" onclick="openPdfModal('theory')">PDF 열기</button>
+        <button type="button" class="btn" id="btnRemoveTheoryPdf" style="display:none;" onclick="removePdf('theory')">연결 해제</button>
+      </div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+      <div class="theory-part-tabs" id="theoryPartTabs"></div>
+      <input type="search" class="search-box" id="txtTheorySearch" style="max-width:300px;" placeholder="챕터·치트키 검색..." oninput="renderTheoryPanel()">
+    </div>
+    <div id="theoryChapterList"></div>
+  </section>
+
+  <!-- Main Quiz Area (Written / Practical / Unified) -->
+  <div id="quizMainArea">
+    <!-- Collapsed Filter Summary Bar -->
+    <div class="filter-collapsed-bar" id="filterCollapsedBar">
+      <div class="filter-summary-chips" id="filterSummaryChips"></div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button type="button" class="btn" onclick="resetAllFilters()">필터 초기화</button>
+        <button type="button" class="btn active" onclick="toggleFilterPanel()">🔽 필터 창 열기</button>
+      </div>
+    </div>
+
+    <!-- Full Filter Card -->
+    <section class="filter-card" id="filterCard">
+      <div class="filter-header-bar">
+        <div class="filter-header-title">
+          <span>🔍 과목·연계단원·출처·회차 상세 필터</span>
+          <span style="font-size:11.5px; color:var(--muted); font-weight:600;">(우측 버튼으로 필터 창을 숨길 수 있습니다)</span>
         </div>
-
-        <div id="subjectCardsGrid" class="subject-cards-grid"></div>
-        <div id="subjectSetsPanel" class="card hidden" style="margin-top:14px;">
-          <div class="sets-head">
-            <div>
-              <h3 id="selectedSubjectTitle" style="margin:0;font-size:16px;"></h3>
-              <p id="selectedSubjectMeta" class="sc-sub"></p>
-            </div>
-            <div class="random-controls">
-              <label class="toggle-label toggle-sm" title="동일 회차·동일 지문 중복 문항을 제외하고 추출합니다">
-                <input id="chkRandomDedup" type="checkbox" checked />
-                <span>중복문제 제거</span>
-              </label>
-              <button id="btnRandomSubject20" type="button" class="btn btn-primary btn-sm">랜덤 20문제 모의세트</button>
-            </div>
-          </div>
-          <div id="subjectSetsGrid" class="sets-grid"></div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button type="button" class="btn" style="padding:3px 8px; font-size:11.5px;" onclick="resetAllFilters()">🔄 조건 초기화</button>
+          <button type="button" class="btn" style="padding:3px 9px; font-size:11.5px;" onclick="toggleFilterPanel()">🔼 필터 창 숨기기</button>
         </div>
       </div>
 
-      <!-- Panel C: Theory CheatKey + Linked Questions Mode -->
-      <div id="panelTheoryMode" class="hidden">
-        <div class="card theory-pdf-bar">
-          <div class="theory-pdf-info">
-            <div class="theory-pdf-title-row">
-              <span id="theoryPdfBadge" class="badge badge-amber">PDF 미연결</span>
-              <strong id="theoryPdfStatus">이론 PDF를 기기에 1회 연결하면 치트키별 본문이 바로 표시됩니다</strong>
-            </div>
-            <p class="sc-sub">개인 구매 PDF는 서버로 전송되지 않고 현재 기기(IndexedDB)에만 안전하게 저장되며 오프라인에서도 동작합니다.</p>
-          </div>
-          <div class="theory-pdf-actions">
-            <label class="btn btn-primary btn-sm file-label">
-              PDF 파일 선택
-              <input id="inputTheoryPdf" type="file" accept="application/pdf" class="hidden" />
-            </label>
-            <div class="offset-ctrl" title="개정판 등으로 페이지 번호가 다를 때 보정">
-              <span>페이지 보정</span>
-              <button id="btnOffsetMinus" type="button" class="btn btn-outline btn-sm">-</button>
-              <strong id="theoryOffsetVal">0</strong>
-              <button id="btnOffsetPlus" type="button" class="btn btn-outline btn-sm">+</button>
-            </div>
-            <button id="btnRemoveTheoryPdf" type="button" class="btn btn-outline btn-sm hidden">연결 해제</button>
-          </div>
-        </div>
-
-        <div class="theory-nav-bar">
-          <div id="theoryPartTabs" class="theory-part-tabs"></div>
-          <input id="theorySearchInput" type="search" placeholder="챕터명 · 치트키명 검색 (예: 옴의법칙, 블록선도, 근궤적)..." class="search-input theory-search" />
-        </div>
-
-        <div id="theoryChapterList" class="theory-chapter-list"></div>
+      <!-- Row 1: 5 Subjects -->
+      <div class="filter-row">
+        <span class="filter-label">과목 분류</span>
+        <button type="button" class="pill active" data-subj="all" onclick="setSubj('all', this)">전체 과목</button>
+        <button type="button" class="pill" data-subj="1" onclick="setSubj('1', this)">1과목 전기자기학</button>
+        <button type="button" class="pill" data-subj="2" onclick="setSubj('2', this)">2과목 전력공학</button>
+        <button type="button" class="pill" data-subj="3" onclick="setSubj('3', this)">3과목 전기기기</button>
+        <button type="button" class="pill" data-subj="4" onclick="setSubj('4', this)">4과목 회로·제어</button>
+        <button type="button" class="pill" data-subj="5" onclick="setSubj('5', this)">5과목 설비기준(KEC)</button>
       </div>
 
-      <!-- Panel D: Independent Silgi Mode (실기 기출 + 단답 PDF 준비 공간) -->
-      <div id="panelSilgiMode" class="hidden">
+      <!-- Row 2: 24 Linked Chapters/Topics (Works across Written, Practical, and Unified!) -->
+      <div class="filter-row">
+        <span class="filter-label">연계 단원</span>
+        <button type="button" class="btn" style="padding:4px 8px;" onclick="stepSelect('selChapter', -1)" title="이전 단원">◀</button>
+        <select class="ctrl-select" id="selChapter" onchange="onChapterChange()">
+          <option value="all">전체 24개 핵심 연계 단원 보기</option>
+        </select>
+        <button type="button" class="btn" style="padding:4px 8px;" onclick="stepSelect('selChapter', 1)" title="다음 단원">▶</button>
+      </div>
+
+      <!-- Row 3: Written-specific filters (Multi-select) -->
+      <div id="writtenFilters">
+        <div class="filter-row" id="writtenPubRow">
+          <span class="filter-label">필기 출처</span>
+          <button type="button" class="pill active" data-prio="all" onclick="setPrio('all')">전체</button>
+        </div>
+      </div>
+
+      <!-- Row 4: Practical-specific filters + Reserved Short-Answer PDF space -->
+      <div id="pracFilters" style="display:none;">
         <!-- Reserved Space for Silgi Short-Answer PDF -->
-        <div class="card silgi-pdf-bar">
-          <div class="theory-pdf-info">
-            <div class="theory-pdf-title-row">
-              <span id="silgiPdfBadge" class="badge badge-amber">단답 PDF 준비 공간</span>
-              <strong id="silgiPdfStatus">실기 단답·요약 PDF가 생기면 기기에 1회 연결해 언제든 바로 펼쳐볼 수 있습니다</strong>
-            </div>
-            <p class="sc-sub">전트키 필기 PDF와 별도로 기기(IndexedDB)에 안전하게 저장되며, 실기 풀이 화면 상단에서도 바로 열어볼 수 있습니다.</p>
+        <div class="pdf-reserve-bar">
+          <div class="pdf-reserve-info">
+            <span class="badge badge-pt" id="silgiPdfBadge">📄 실기 단답 PDF 공간</span>
+            <span id="silgiPdfStatus">추후 실기 단답·요약 PDF를 여기에 1회 연결해 두면 오프라인에서도 바로 펼쳐볼 수 있습니다.</span>
           </div>
-          <div class="silgi-pdf-actions">
-            <label class="btn btn-primary btn-sm file-label">
+          <div class="pdf-reserve-actions">
+            <label class="btn active file-btn-lbl" style="padding:4px 9px; font-size:11.5px;">
               단답 PDF 연결
-              <input id="inputSilgiPdf" type="file" accept="application/pdf" class="hidden" />
+              <input type="file" accept="application/pdf" style="display:none;" onchange="if(this.files[0]) handlePdfUpload('silgi', this.files[0]); this.value='';">
             </label>
-            <button id="btnOpenSilgiPdf" type="button" class="btn btn-dark btn-sm hidden">단답 PDF 열기</button>
-            <button id="btnRemoveSilgiPdf" type="button" class="btn btn-outline btn-sm hidden">연결 해제</button>
+            <button type="button" class="btn" id="btnOpenSilgiPdf" style="display:none; padding:4px 9px; font-size:11.5px;" onclick="openPdfModal('silgi')">PDF 열기</button>
+            <button type="button" class="btn" id="btnRemoveSilgiPdf" style="display:none; padding:4px 9px; font-size:11.5px;" onclick="removePdf('silgi')">해제</button>
           </div>
         </div>
 
-        <!-- Silgi Stats -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <span class="stat-label">실기 표시 회차</span>
-            <strong id="silgiStatSessions" class="stat-val">-</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">실기 표시 문항</span>
-            <strong id="silgiStatQuestions" class="stat-val">-</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">교차 검증 회차</span>
-            <strong id="silgiStatDupGroups" class="stat-val text-indigo">-</strong>
-          </div>
-          <div class="stat-card">
-            <span class="stat-label">자가채점 완료</span>
-            <strong id="silgiStatGraded" class="stat-val text-green">-</strong>
-          </div>
+        <div class="filter-row">
+          <span class="filter-label">실기 교재</span>
+          <button type="button" class="pill prac-pill active" data-pkind="all" onclick="setPKind('all', this)">전체 (2,928)</button>
+          <button type="button" class="pill prac-pill" data-pkind="dasan" onclick="setPKind('dasan', this)">다산에듀 (702)</button>
+          <button type="button" class="pill prac-pill" data-pkind="hansol" onclick="setPKind('hansol', this)">한솔아카데미 (515)</button>
+          <button type="button" class="pill prac-pill" data-pkind="seoulgong" onclick="setPKind('seoulgong', this)">서울공과학원 (763)</button>
+          <button type="button" class="pill prac-pill" data-pkind="testnara" onclick="setPKind('testnara', this)">테스트나라 (948)</button>
+          <select class="ctrl-select" id="selSilgiCat" onchange="applyFilters()">
+            <option value="all">실기 8대 단원 전체</option>
+          </select>
+          <label style="font-size:12px; font-weight:700; cursor:pointer; margin-left:4px; display:inline-flex; align-items:center; gap:4px;">
+            <input type="checkbox" id="chkAnsBox" checked onchange="renderPage()"> 답안작성란 표시
+          </label>
+          <button type="button" class="btn" style="padding:3px 8px; font-size:11.5px;" onclick="openResetModal()">작성답안 초기화</button>
         </div>
+      </div>
 
-        <!-- Silgi Sub-Mode Switcher -->
-        <div class="silgi-sub-tabs">
-          <button id="btnSilgiSubRound" type="button" class="silgi-sub-btn active">실기 회차별 풀기</button>
-          <button id="btnSilgiSubCat" type="button" class="silgi-sub-btn">실기 단원별 집중 풀기 (8단원)</button>
+      <!-- Row 5: Unified Co-Study Arrangement -->
+      <div id="unifiedFilters" style="display:none;">
+        <div class="filter-row">
+          <span class="filter-label">함께 배열</span>
+          <button type="button" class="pill uni-pill active" data-uorder="paired" onclick="setUnifiedOrder('paired', this)">🔗 짝꿍 묶음 (필기 직후 연계 실기 연속 배치)</button>
+          <button type="button" class="pill uni-pill" data-uorder="interleave" onclick="setUnifiedOrder('interleave', this)">⚖️ 교차 배치 (필기 3 ↔ 실기 1)</button>
+          <button type="button" class="pill uni-pill" data-uorder="sequential" onclick="setUnifiedOrder('sequential', this)">📑 필기 → 실기 순서</button>
         </div>
+      </div>
 
-        <!-- Silgi Filter Panel -->
-        <div class="filter-panel card">
-          <div class="filter-row">
-            <div class="dedup-box">
-              <label class="toggle-label">
-                <input id="chkSilgiDedup" type="checkbox" />
-                <span>출판사별 중복 연도·회차 자동 제거</span>
-              </label>
-              <div id="silgiPriorityWrap" class="priority-wrap hidden">
-                <span class="priority-txt">우선 유지 출판사:</span>
-                <select id="silgiSelectPriority" class="select-input select-sm"></select>
-              </div>
-            </div>
+      <!-- Row 6: Deduplication + Session + Search + Page Size -->
+      <div class="filter-row">
+        <span class="filter-label">중복 소거</span>
+        <button type="button" class="pill active" data-dup="all" onclick="setDupMode('all', this)">전체 보기</button>
+        <button type="button" class="pill" data-dup="dedup" onclick="setDupMode('dedup', this)">✨ 중복 소거 (대표문항만)</button>
+        <button type="button" class="pill" data-dup="unique" onclick="setDupMode('unique', this)">🆕 고유 1회 출제만</button>
+        <button type="button" class="pill" id="btnOnlyLinked" onclick="toggleOnlyLinked()">🔥 실기연계 문항만</button>
+      </div>
 
-            <div class="filter-selects">
-              <select id="silgiSelectYear" class="select-input">
-                <option value="all">모든 연도</option>
-              </select>
-              <input id="silgiSearchInput" type="search" placeholder="연도, 출처 검색..." class="search-input" />
-            </div>
-          </div>
-
-          <div class="pub-filter-wrap">
-            <div class="pub-filter-head">
-              <span class="pub-label">실기 교재 선택 (4대 출처)</span>
-              <div class="pub-quick">
-                <button id="btnSilgiPubAll" type="button" class="link-btn">전체 선택</button>
-                <button id="btnSilgiPubNone" type="button" class="link-btn">전체 해제</button>
-              </div>
-            </div>
-            <div id="silgiPublisherChips" class="chips"></div>
-          </div>
-
-          <div id="silgiStatusChipsRow" class="chips">
-            <button type="button" data-sfilter="all" class="chip active">전체</button>
-            <button type="button" data-sfilter="duplicate" class="chip">중복(교차 검증)</button>
-            <button type="button" data-sfilter="graded" class="chip">자가채점 기록</button>
-            <button type="button" data-sfilter="bookmark" class="chip">북마크 포함</button>
-          </div>
-        </div>
-
-        <!-- Silgi Round Grid -->
-        <div id="silgiRoundWrap">
-          <div id="silgiSessionGrid" class="session-grid"></div>
-        </div>
-
-        <!-- Silgi Category Grid -->
-        <div id="silgiCategoryWrap" class="hidden">
-          <div id="silgiCategoryGrid" class="subject-cards-grid"></div>
-          <div id="silgiCategorySetsPanel" class="card hidden" style="margin-top:14px;">
-            <div class="sets-head">
-              <div>
-                <h3 id="selectedSilgiCatTitle" style="margin:0;font-size:16px;"></h3>
-                <p id="selectedSilgiCatMeta" class="sc-sub"></p>
-              </div>
-              <button id="btnSilgiRandom15" type="button" class="btn btn-primary btn-sm">랜덤 15문제 모의세트</button>
-            </div>
-            <div id="silgiCategorySetsGrid" class="sets-grid"></div>
-          </div>
-        </div>
+      <div class="filter-row" style="margin-top:6px;">
+        <span class="filter-label">회차·검색</span>
+        <button type="button" class="btn" style="padding:5px 8px;" onclick="stepSelect('selSession', -1)" title="이전 회차">◀</button>
+        <select class="ctrl-select" id="selSession" onchange="applyFilters()">
+          <option value="all">전체 회차·단원</option>
+        </select>
+        <button type="button" class="btn" style="padding:5px 8px;" onclick="stepSelect('selSession', 1)" title="다음 회차">▶</button>
+        <input type="search" class="search-box" id="txtSearch" placeholder="키워드, 공식, KEC 수치, 설비명 검색..." oninput="onSearchInput()">
+        <select class="ctrl-select" id="selPageSize" onchange="onPageSizeChange()">
+          <option value="15">15문항씩 (모바일 초경량)</option>
+          <option value="20">20문항씩 (아이폰 권장)</option>
+          <option value="30">30문항씩</option>
+          <option value="50">50문항씩 (PC·패드)</option>
+          <option value="100">100문항씩</option>
+        </select>
       </div>
     </section>
 
-    <!-- THEORY DETAIL VIEW -->
-    <section id="viewTheoryDetail" class="hidden">
-      <div class="exam-header card">
-        <div class="exam-header-left">
-          <button id="btnTheoryBack" type="button" class="btn btn-outline btn-sm">← 치트키 목차</button>
-          <div class="exam-meta">
-            <span id="tdPartBadge" class="badge badge-teal"></span>
-            <h2 id="tdTitle"></h2>
-            <span id="tdPageBadge" class="badge badge-slate"></span>
-          </div>
-        </div>
-        <div class="exam-tools">
-          <div class="view-toggle">
-            <button id="btnTdLayoutStack" type="button" class="vt-btn active">위아래 보기</button>
-            <button id="btnTdLayoutSplit" type="button" class="vt-btn">좌우 분할</button>
-          </div>
-          <button id="btnTdPrevCk" type="button" class="btn btn-outline btn-sm">← 이전 치트키</button>
-          <button id="btnTdNextCk" type="button" class="btn btn-outline btn-sm">다음 치트키 →</button>
-          <button id="btnTdLaunchCbt" type="button" class="btn btn-primary btn-sm">CBT 전체화면 풀기</button>
-        </div>
-      </div>
-
-      <div id="tdBreadcrumbs" class="td-breadcrumb"></div>
-
-      <div id="tdWorkspace" class="td-workspace td-stack">
-        <section class="card td-pdf-pane">
-          <div class="td-pane-head">
-            <div>
-              <strong>이론 본문 (PDF)</strong>
-              <span id="tdPdfPageInfo" class="sc-sub" style="margin-left:8px;"></span>
-            </div>
-            <div class="td-pdf-tools">
-              <button id="btnPdfZoomOut" type="button" class="btn btn-outline btn-sm">-</button>
-              <span id="tdPdfZoomLbl" class="td-zoom-lbl">100%</span>
-              <button id="btnPdfZoomIn" type="button" class="btn btn-outline btn-sm">+</button>
-              <label class="btn btn-outline btn-sm file-label">
-                PDF 변경
-                <input id="inputTheoryPdfDetail" type="file" accept="application/pdf" class="hidden" />
-              </label>
-            </div>
-          </div>
-          <div id="tdPdfPages" class="td-pdf-pages"></div>
-        </section>
-
-        <section class="td-quiz-pane">
-          <div class="card td-quiz-bar">
-            <div class="td-quiz-bar-top">
-              <div>
-                <strong id="tdQuizSummary">연계 기출문제</strong>
-                <span id="tdQuizStat" class="omr-stat" style="margin-left:8px;"></span>
-              </div>
-              <div class="td-quiz-toggles">
-                <label class="toggle-label toggle-sm">
-                  <input id="chkTdShowAnswerExp" type="checkbox" checked />
-                  <span>답·해설 보기</span>
-                </label>
-                <label class="toggle-label toggle-sm">
-                  <input id="chkTdQuizDedup" type="checkbox" checked />
-                  <span>중복문제 제거</span>
-                </label>
-                <div class="chips" id="tdQuizFilterChips">
-                  <button type="button" data-qfilter="all" class="chip active">전체</button>
-                  <button type="button" data-qfilter="recent5" class="chip">최근 5년</button>
-                  <button type="button" data-qfilter="unsolved" class="chip">미풀이</button>
-                </div>
-              </div>
-            </div>
-            <div class="td-quiz-pager">
-              <button id="btnTdQPrev" type="button" class="btn btn-outline btn-sm">← 이전 10문항</button>
-              <span id="tdQPageLbl" class="batch-page-lbl"></span>
-              <button id="btnTdQNext" type="button" class="btn btn-dark btn-sm">다음 10문항 →</button>
-            </div>
-          </div>
-          <div id="tdQuizList" class="batch-list"></div>
-        </section>
-      </div>
-    </section>
-
-    <!-- PILGI EXAM VIEW -->
-    <section id="viewExam" class="hidden">
-      <div class="exam-header card">
-        <div class="exam-header-left">
-          <button id="btnBack" type="button" class="btn btn-outline btn-sm">← 목록</button>
-          <div class="exam-meta">
-            <h2 id="examTitle"></h2>
-            <span id="examSource" class="badge badge-blue"></span>
-            <span id="examNoExp" class="badge badge-amber hidden">미해설</span>
-          </div>
-        </div>
-        <div class="exam-tools">
-          <label class="toggle-label toggle-exam" title="체크하면 정답과 해설이 표시되고, 해제하면 답과 해설이 숨겨집니다">
-            <input id="chkShowAnswerExp" type="checkbox" checked />
-            <span>답·해설 보기</span>
-          </label>
-          <div class="view-toggle">
-            <button id="btnViewSingle" type="button" class="vt-btn active">1문제씩</button>
-            <button id="btnViewBatch20" type="button" class="vt-btn">20문제 모아보기</button>
-          </div>
-          <button id="btnCrossCheck" type="button" class="btn btn-indigo btn-sm hidden">교차 비교</button>
-          <button id="btnPadToggle" type="button" class="btn btn-outline btn-sm">연습장</button>
-          <button id="btnResetSession" type="button" class="btn btn-outline btn-sm">초기화</button>
-        </div>
-      </div>
-
-      <!-- Random 20-Question Duplicate Inspection Banner -->
-      <div id="randomDupBanner" class="card dup-banner hidden">
-        <div class="dup-banner-left">
-          <strong id="randomDupStatus"></strong>
-          <span id="randomDupDetail" class="dup-banner-sub"></span>
-        </div>
-        <div class="dup-banner-right">
-          <label class="toggle-label toggle-sm">
-            <input id="chkBannerRemoveDup" type="checkbox" />
-            <span>중복문제 제거 (고유 문항으로 보충)</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Subject Tabs (20 questions per subject) -->
-      <div id="subjectTabs" class="subject-tabs"></div>
-
-      <!-- SINGLE QUESTION MODE -->
-      <div id="singleModeWrap" class="exam-layout">
-        <article class="card question-card" id="questionArea">
-          <div class="q-head">
-            <div class="q-head-left">
-              <span id="qNum" class="q-num"></span>
-              <span id="qDupBadge" class="badge badge-amber hidden">중복 문항</span>
-              <span id="qOriginTag" class="badge badge-slate hidden"></span>
-              <span id="qSubj" class="q-subj"></span>
-              <span id="qCat" class="q-cat hidden"></span>
-              <button id="qCheatkeyBtn" type="button" class="badge badge-teal btn-chip hidden" title="연계 치트키 이론 보기"></button>
-              <button id="qSilgiLinkBtn" type="button" class="badge badge-silgi-link btn-chip hidden" title="연계 실기 기출 미리보기"></button>
-            </div>
-            <div class="q-head-right">
-              <button id="btnToggleOneExp" type="button" class="btn btn-outline btn-sm hidden">이 문제 해설 보기</button>
-              <a id="qVideoLink" href="#" target="_blank" rel="noopener" class="btn btn-outline btn-sm hidden">해설 영상</a>
-              <button id="btnBookmark" type="button" class="btn btn-outline btn-sm">☆ 북마크</button>
-            </div>
-          </div>
-
-          <div id="qStem" class="q-stem"></div>
-          <div id="qDiagWrap" class="q-diag-wrap hidden">
-            <div id="qDiag" class="q-diag"></div>
-            <button id="btnZoomDiag" type="button" class="btn btn-outline btn-sm zoom-btn">도면 크게 보기</button>
-          </div>
-
-          <div id="qChoices" class="q-choices"></div>
-
-          <div id="qExpBox" class="q-exp-box hidden">
-            <div class="q-exp-head">
-              <strong id="qResLabel"></strong>
-              <span id="qCorrectAns"></span>
-            </div>
-            <div id="qFormula" class="q-formula hidden"></div>
-            <div id="qTip" class="q-tip hidden"></div>
-            <div id="qExpBody" class="q-exp-body"></div>
-          </div>
-
-          <div class="desktop-nav">
-            <button id="btnPrev" type="button" class="btn btn-outline">← 이전 문제</button>
-            <span class="shortcut-hint">단축키: 1~4 선택 · ← / → 이동</span>
-            <button id="btnNext" type="button" class="btn btn-dark">다음 문제 →</button>
-          </div>
-        </article>
-
-        <aside class="side-col">
-          <div id="padCard" class="card hidden">
-            <div class="pad-head">
-              <strong>계산 연습장 (태블릿 펜 지원)</strong>
-              <div class="pad-tools">
-                <button type="button" data-pen="#0f172a" class="pen-dot active" style="background:#0f172a" aria-label="검정"></button>
-                <button type="button" data-pen="#2563eb" class="pen-dot" style="background:#2563eb" aria-label="파랑"></button>
-                <button type="button" data-pen="#e11d48" class="pen-dot" style="background:#e11d48" aria-label="빨강"></button>
-                <button id="btnClearPad" type="button" class="btn btn-outline btn-sm">지우기</button>
-              </div>
-            </div>
-            <canvas id="padCanvas" class="pad-canvas"></canvas>
-          </div>
-
-          <div class="card">
-            <div class="omr-head">
-              <strong>문항 이동 (OMR)</strong>
-              <span id="omrStat" class="omr-stat"></span>
-            </div>
-            <div id="omrGrid" class="omr-grid"></div>
-          </div>
-        </aside>
-      </div>
-
-      <!-- BATCH 20-QUESTION VIEW -->
-      <div id="batchModeWrap" class="hidden">
-        <div class="batch-bar card">
-          <span id="batchSummary" class="batch-summary"></span>
-          <div class="batch-pager">
-            <button id="btnBatchPrev" type="button" class="btn btn-outline btn-sm">← 이전 20문항</button>
-            <span id="batchPageLabel" class="batch-page-lbl"></span>
-            <button id="btnBatchNext" type="button" class="btn btn-dark btn-sm">다음 20문항 →</button>
-          </div>
-        </div>
-        <div id="batchList" class="batch-list"></div>
-      </div>
-    </section>
-
-    <!-- SILGI EXAM VIEW -->
-    <section id="viewSilgiExam" class="hidden">
-      <div class="exam-header card">
-        <div class="exam-header-left">
-          <button id="btnSilgiBack" type="button" class="btn btn-outline btn-sm">← 실기 목록</button>
-          <div class="exam-meta">
-            <h2 id="silgiExamTitle"></h2>
-            <span id="silgiExamSource" class="badge badge-teal"></span>
-          </div>
-        </div>
-        <div class="exam-tools">
-          <label class="toggle-label toggle-exam">
-            <input id="chkSilgiShowAnswerExp" type="checkbox" checked />
-            <span>정답·해설 보기</span>
-          </label>
-          <div class="view-toggle">
-            <button id="btnSilgiViewSingle" type="button" class="vt-btn active">1문제씩</button>
-            <button id="btnSilgiViewBatch" type="button" class="vt-btn">10문제 모아보기</button>
-          </div>
-          <button id="btnSilgiCrossCheck" type="button" class="btn btn-indigo btn-sm hidden">교차 비교</button>
-          <button id="btnSilgiExamPdf" type="button" class="btn btn-outline btn-sm">단답 PDF</button>
-          <button id="btnSilgiPadToggle" type="button" class="btn btn-outline btn-sm">연습장</button>
-          <button id="btnSilgiResetSession" type="button" class="btn btn-outline btn-sm">채점 초기화</button>
-        </div>
-      </div>
-
-      <!-- SILGI SINGLE QUESTION MODE -->
-      <div id="silgiSingleWrap" class="exam-layout">
-        <article class="card question-card" id="silgiQuestionArea">
-          <div class="q-head">
-            <div class="q-head-left">
-              <span id="sqNum" class="q-num"></span>
-              <span id="sqPoints" class="badge badge-indigo hidden"></span>
-              <span id="sqOriginTag" class="badge badge-slate hidden"></span>
-              <span id="sqCat" class="q-subj"></span>
-              <span id="sqPastYears" class="q-cat hidden"></span>
-              <button id="sqCheatkeyBtn" type="button" class="badge badge-teal btn-chip hidden" title="연계 필기 치트키 이론 보기"></button>
-            </div>
-            <div class="q-head-right">
-              <button id="btnSilgiToggleOneExp" type="button" class="btn btn-outline btn-sm hidden">정답·해설 보기</button>
-              <button id="btnSilgiBookmark" type="button" class="btn btn-outline btn-sm">☆ 북마크</button>
-            </div>
-          </div>
-
-          <div id="sqStem" class="q-stem silgi-html"></div>
-          <div id="sqDiagWrap" class="hidden"></div>
-
-          <!-- Self-Grading Bar -->
-          <div class="silgi-grade-bar">
-            <span style="font-size:12.5px;font-weight:700;color:#475569;">자가 채점</span>
-            <div class="silgi-grade-btns">
-              <button type="button" data-sgrade="ok" class="sgrade-btn ok">O 맞힘</button>
-              <button type="button" data-sgrade="mid" class="sgrade-btn mid">△ 애매함</button>
-              <button type="button" data-sgrade="no" class="sgrade-btn no">X 틀림</button>
-            </div>
-          </div>
-
-          <div id="sqExpBox" class="q-exp-box info hidden">
-            <div class="silgi-sec-label">정답</div>
-            <div id="sqAnswerBody" class="silgi-html"></div>
-            <div id="sqExpDetailWrap" style="margin-top:12px;"></div>
-          </div>
-
-          <div class="desktop-nav">
-            <button id="btnSilgiPrev" type="button" class="btn btn-outline">← 이전 문제</button>
-            <span class="shortcut-hint">도면을 클릭하면 크게 확대됩니다</span>
-            <button id="btnSilgiNext" type="button" class="btn btn-dark">다음 문제 →</button>
-          </div>
-        </article>
-
-        <aside class="side-col">
-          <div id="silgiPadCard" class="card hidden">
-            <div class="pad-head">
-              <strong>실기 계산·도면 연습장</strong>
-              <div class="pad-tools">
-                <button type="button" data-spen="#0f172a" class="pen-dot active" style="background:#0f172a" aria-label="검정"></button>
-                <button type="button" data-spen="#2563eb" class="pen-dot" style="background:#2563eb" aria-label="파랑"></button>
-                <button type="button" data-spen="#e11d48" class="pen-dot" style="background:#e11d48" aria-label="빨강"></button>
-                <button id="btnSilgiClearPad" type="button" class="btn btn-outline btn-sm">지우기</button>
-              </div>
-            </div>
-            <canvas id="silgiPadCanvas" class="pad-canvas"></canvas>
-          </div>
-
-          <div class="card">
-            <div class="omr-head">
-              <strong>실기 문항 이동</strong>
-              <span id="silgiOmrStat" class="omr-stat"></span>
-            </div>
-            <div id="silgiOmrGrid" class="omr-grid"></div>
-          </div>
-        </aside>
-      </div>
-
-      <!-- SILGI BATCH VIEW -->
-      <div id="silgiBatchWrap" class="hidden">
-        <div class="batch-bar card">
-          <span id="silgiBatchSummary" class="batch-summary"></span>
-          <div class="batch-pager">
-            <button id="btnSilgiBatchPrev" type="button" class="btn btn-outline btn-sm">← 이전 10문항</button>
-            <span id="silgiBatchPageLabel" class="batch-page-lbl"></span>
-            <button id="btnSilgiBatchNext" type="button" class="btn btn-dark btn-sm">다음 10문항 →</button>
-          </div>
-        </div>
-        <div id="silgiBatchList" class="batch-list"></div>
-      </div>
-    </section>
-  </main>
-
-  <nav id="mobileNav" class="mobile-nav hidden">
-    <button id="btnPrevM" type="button" class="btn btn-outline">← 이전</button>
-    <span id="mobileIdx" class="mobile-idx"></span>
-    <button id="btnNextM" type="button" class="btn btn-dark">다음 →</button>
-  </nav>
-
-  <!-- Silgi Linkage Preview Modal (From Pilgi View) -->
-  <div id="modalSilgiPreview" class="modal hidden">
-    <div class="modal-box modal-wide">
-      <div class="modal-head">
-        <div>
-          <h3 id="spModalTopicTitle">⚡ 실기 연계 미리보기</h3>
-          <p id="spModalTopicSub" class="modal-sub"></p>
-        </div>
-        <button id="btnCloseSilgiPreview" type="button" class="btn btn-outline btn-sm">닫기</button>
-      </div>
-      <div class="sp-toolbar">
-        <div id="spQuickPills" class="sp-quick-pills"></div>
-        <div class="batch-pager">
-          <button id="btnSpPrev" type="button" class="btn btn-outline btn-sm">← 이전</button>
-          <span id="spPagerLbl" class="batch-page-lbl"></span>
-          <button id="btnSpNext" type="button" class="btn btn-dark btn-sm">다음 →</button>
-        </div>
-      </div>
-      <div id="spBody" class="sp-body"></div>
-    </div>
-  </div>
-
-  <!-- Silgi Short-Answer PDF Modal -->
-  <div id="modalSilgiPdf" class="modal hidden">
-    <div class="modal-box modal-wide">
-      <div class="modal-head">
-        <div>
-          <h3 id="silgiPdfModalTitle">실기 단답·요약 PDF 뷰어</h3>
-          <p class="modal-sub">기기 로컬 저장소(IndexedDB)에 저장되어 오프라인에서도 열람할 수 있습니다.</p>
-        </div>
-        <button id="btnCloseSilgiPdf" type="button" class="btn btn-outline btn-sm">닫기</button>
-      </div>
-      <div id="silgiPdfControls" class="silgi-pdf-controls hidden">
-        <div class="silgi-pdf-page-nav">
-          <button id="btnSilgiPdfPrev" type="button" class="btn btn-outline btn-sm">← 이전 쪽</button>
-          <input id="silgiPdfPageInput" type="number" min="1" value="1" class="silgi-pdf-page-input" />
-          <span id="silgiPdfPageLbl" class="sc-sub"></span>
-          <button id="btnSilgiPdfNext" type="button" class="btn btn-dark btn-sm">다음 쪽 →</button>
-        </div>
-        <div class="td-pdf-tools">
-          <button id="btnSilgiPdfZoomOut" type="button" class="btn btn-outline btn-sm">-</button>
-          <span id="silgiPdfZoomLbl" class="td-zoom-lbl">100%</span>
-          <button id="btnSilgiPdfZoomIn" type="button" class="btn btn-outline btn-sm">+</button>
-          <label class="btn btn-outline btn-sm file-label">
-            PDF 변경
-            <input id="inputSilgiPdfModal" type="file" accept="application/pdf" class="hidden" />
-          </label>
-        </div>
-      </div>
-      <div id="silgiPdfEmptyState" class="card" style="text-align:center;padding:28px 16px;">
-        <p style="margin:0 0 12px;font-size:14px;color:#475569;">아직 연결된 실기 단답·요약 PDF가 없습니다.<br />나중에 단답 정리 PDF를 준비하시면 아래 버튼으로 바로 연결할 수 있습니다.</p>
-        <label class="btn btn-primary file-label">
-          실기 단답 PDF 파일 선택
-          <input type="file" accept="application/pdf" class="hidden" onchange="if(this.files[0]) handleSilgiPdfSelected(this.files[0]); this.value='';" />
-        </label>
-      </div>
-      <div id="silgiPdfCanvasWrap" class="silgi-pdf-canvas-wrap"></div>
-    </div>
-  </div>
-
-  <!-- Cross-check Modal -->
-  <div id="modalCross" class="modal hidden">
-    <div class="modal-box modal-wide">
-      <div class="modal-head">
-        <div>
-          <h3>중복 회차 출처별 교차 검증</h3>
-          <p id="crossSubtitle" class="modal-sub"></p>
-        </div>
-        <button id="btnCloseCross" type="button" class="btn btn-outline btn-sm">닫기</button>
-      </div>
-      <div id="crossGrid" class="cross-grid"></div>
-    </div>
-  </div>
-
-  <!-- Diagram Zoom Modal -->
-  <div id="modalZoom" class="modal hidden">
-    <div class="modal-box">
-      <div class="modal-head">
-        <h3>도면 확대 보기</h3>
-        <button id="btnCloseZoom" type="button" class="btn btn-outline btn-sm">닫기</button>
-      </div>
-      <div id="zoomContent" class="zoom-content"></div>
-    </div>
-  </div>
-
-  <!-- Offline Download Modal -->
-  <div id="modalOffline" class="modal hidden">
-    <div class="modal-box modal-sm">
-      <div class="modal-head">
-        <h3>오프라인 저장 옵션</h3>
-        <button id="btnCloseOffline" type="button" class="btn btn-outline btn-sm">닫기</button>
-      </div>
-      <p class="modal-desc">와이파이가 연결된 상태에서 저장해 두면 비행기 모드에서도 모든 회차를 풀 수 있습니다. (실기 도면은 WebP 최적화 완료)</p>
-      <div class="modal-actions">
-        <button id="btnCacheJsonOnly" type="button" class="btn btn-outline btn-full">필기 JSON만 저장 (170회차 · 약 21MB)</button>
-        <button id="btnCacheEverything" type="button" class="btn btn-outline btn-full">필기 JSON + 도면 저장 (약 36MB)</button>
-        <button id="btnCacheAllJson" type="button" class="btn btn-outline btn-full">필기 + 실기 JSON 전체 저장 (337회차 · 약 28MB)</button>
-        <button id="btnCacheAllEverything" type="button" class="btn btn-primary btn-full">필기 + 실기 전체 저장 (도면 포함 · 약 72MB)</button>
+    <div class="stats-bar">
+      <div id="statsText">데이터 준비 중...</div>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <span id="pageIndicatorTop" style="font-weight:700; color:var(--sub);"></span>
       </div>
     </div>
-  </div>
 
-  <!-- Backup Modal -->
-  <div id="modalBackup" class="modal hidden">
-    <div class="modal-box modal-sm">
-      <div class="modal-head">
-        <h3>학습 기록 백업 / 복원</h3>
-        <button id="btnCloseBackup" type="button" class="btn btn-outline btn-sm">닫기</button>
+    <div class="pager" id="pagerTop"></div>
+    <main class="q-list" id="qList"></main>
+    <div class="pager" id="pagerBottom"></div>
+  </div>
+</div>
+
+<!-- Mobile Sticky Bottom Quick Bar -->
+<nav class="mobile-bottom-bar" id="mobileBottomBar" aria-label="모바일 빠른 제어 바">
+  <button type="button" class="mob-btn" id="mobPrevBtn" onclick="goPage(state.page - 1)">◀ 이전</button>
+  <select class="mob-page-sel" id="mobPageSel" aria-label="페이지 선택" onchange="goPage(Number(this.value))"></select>
+  <button type="button" class="mob-btn" id="mobNextBtn" onclick="goPage(state.page + 1)">다음 ▶</button>
+  <button type="button" class="mob-btn" id="mobFilterBtn" onclick="toggleFilterPanel()">🔽 필터</button>
+  <button type="button" class="mob-btn active" id="mobStudyBtn" onclick="toggleStudyMode()">📖 해설</button>
+  <button type="button" class="mob-btn" id="mobAutoPracBtn" onclick="toggleAutoPracDrawer()">🔗 실기연계</button>
+  <button type="button" class="mob-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆️</button>
+</nav>
+
+<!-- Reset Practical Answers Modal -->
+<div class="modal-backdrop" id="resetModal" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <strong style="font-size:15px;">실기 작성 답안 초기화</strong>
+      <button type="button" class="btn" onclick="closeResetModal()">✕</button>
+    </div>
+    <p style="font-size:13px; color:var(--sub); margin:0 0 14px;">실기 답안란에 직접 입력한 텍스트와 자가채점 기록을 모두 초기화하시겠습니까?</p>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" class="btn" onclick="closeResetModal()">취소</button>
+      <button type="button" class="btn active" onclick="confirmResetPracAnswers()">초기화 실행</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shared PDF Viewer Modal (Silgi Short-Answer PDF & Theory CheatKey PDF) -->
+<div class="modal-backdrop" id="pdfModal" role="dialog" aria-modal="true">
+  <div class="modal-card modal-wide">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;">
+      <strong style="font-size:15px;" id="pdfModalTitle">📄 PDF 뷰어</strong>
+      <button type="button" class="btn" onclick="closePdfModal()">닫기 ✕</button>
+    </div>
+    <div id="pdfModalCtrl" class="pdf-ctrl-bar" style="display:none;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" class="btn" id="btnPdfPrev" onclick="stepPdfPage(-1)">◀ 이전 쪽</button>
+        <input type="number" min="1" value="1" id="pdfPageInput" class="pdf-page-input" onchange="jumpPdfPage(Number(this.value))">
+        <span id="pdfPageTotal" style="font-size:12px; color:var(--muted);">/ 1쪽</span>
+        <button type="button" class="btn" id="btnPdfNext" onclick="stepPdfPage(1)">다음 쪽 ▶</button>
       </div>
-      <p class="modal-desc">PC, 샤오신패드, 아이폰 간 필기 풀이·북마크 및 실기 자가채점·북마크 기록을 JSON 파일로 옮길 수 있습니다.</p>
-      <div class="modal-actions">
-        <button id="btnExportBackup" type="button" class="btn btn-primary btn-full">학습 기록 JSON 내보내기 (필기+실기)</button>
-        <label class="btn btn-outline btn-full file-label">
-          백업 JSON 불러오기
-          <input id="inputImportBackup" type="file" accept=".json" class="hidden" />
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" class="btn" onclick="zoomPdf(-0.15)">-</button>
+        <span id="pdfZoomLbl" style="font-size:12px; font-weight:700;">100%</span>
+        <button type="button" class="btn" onclick="zoomPdf(0.15)">+</button>
+        <label class="btn file-btn-lbl">
+          PDF 변경
+          <input type="file" accept="application/pdf" style="display:none;" onchange="if(this.files[0]) handlePdfUpload(pdfViewerState.activeKind, this.files[0]); this.value='';">
         </label>
       </div>
     </div>
+    <div id="pdfEmptyBox" style="text-align:center; padding:28px 16px; display:none;">
+      <p id="pdfEmptyMsg" style="font-size:13.5px; color:var(--sub); margin:0 0 14px;"></p>
+      <label class="btn active file-btn-lbl">
+        PDF 파일 선택하기
+        <input type="file" accept="application/pdf" style="display:none;" onchange="if(this.files[0]) handlePdfUpload(pdfViewerState.activeKind, this.files[0]); this.value='';">
+      </label>
+    </div>
+    <div id="pdfCanvasWrap" class="pdf-canvas-wrap"></div>
   </div>
+</div>
 
-  <div id="toast" class="toast hidden"></div>
-  <script src="./app.js"></script>
-  <script src="./theory.js"></script>
-  <script src="./silgi.js"></script>
+<!-- Diagram Zoom Modal -->
+<div class="modal-backdrop" id="zoomModal" role="dialog" aria-modal="true" onclick="if(event.target===this) closeZoomModal()">
+  <div class="modal-card modal-wide" style="text-align:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <strong style="font-size:15px;">🔍 도면 확대 보기</strong>
+      <button type="button" class="btn" onclick="closeZoomModal()">닫기 ✕</button>
+    </div>
+    <div id="zoomBody" style="overflow:auto; max-height:74vh;"></div>
+  </div>
+</div>
+
+<script src="./app.js?v=5" defer></script>
 </body>
 </html>

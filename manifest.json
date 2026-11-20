@@ -1,0 +1,26 @@
+{
+  "name": "전기기사 필기+실기 완전통합",
+  "short_name": "전기기사",
+  "description": "전기기사 필기(16,706문항)·실기(2,928문항)·전트키 이론 완전통합 오프라인 학습 PWA",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fefce8",
+  "theme_color": "#ca8a04",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
