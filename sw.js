@@ -1,9 +1,9 @@
-const CACHE_NAME = 'elec-master-pwa-v5';
+const CACHE_NAME = 'elec-master-pwa-v5.1';
 const CORE_ASSETS = [
   './',
   './index.html',
-  './style.css?v=5',
-  './app.js?v=5',
+  './style.css?v=5.1',
+  './app.js?v=5.1',
   './manifest.json',
   './data/meta.json',
   './data/written_1.json',

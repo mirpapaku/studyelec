@@ -981,7 +981,7 @@ function filterSingleQuestion(q, ses, ch, silgiCat, kw) {
   if (q._type === 'w') {
     if (state.ckFilterId && q.ck !== state.ckFilterId) return false;
     if (state.prios.size > 0 && !state.prios.has(String(q.p))) return false;
-    if (state.onlyLinked && !q.tid) return false;
+    if (state.onlyLinked && (!q.pl || !q.pl.length)) return false;
     if (ses !== 'all') {
       if (state.mode === 'unified') {
         const shortLbl = q.rd === 12 ? `${q.yr}년 1·2회 통합` : `${q.yr}년 ${q.rd}회`;
@@ -1020,13 +1020,13 @@ function applyFilters() {
     if (state.unifiedOrder === 'paired') {
       const combined = [];
       const usedP = new Set();
-      const wWithLinks = wList.filter(w => w.tid && (TOPIC_SILGI_IDS[w.tid] || []).some(pid => pAllowedSet.has(pid)));
-      const wWithoutLinks = wList.filter(w => !w.tid || !(TOPIC_SILGI_IDS[w.tid] || []).some(pid => pAllowedSet.has(pid)));
+      const wWithLinks = wList.filter(w => w.pl && w.pl.some(pid => pAllowedSet.has(pid)));
+      const wWithoutLinks = wList.filter(w => !w.pl || !w.pl.some(pid => pAllowedSet.has(pid)));
 
       wWithLinks.forEach(w => {
         combined.push(w);
         let added = 0;
-        for (const pid of (TOPIC_SILGI_IDS[w.tid] || [])) {
+        for (const pid of (w.pl || [])) {
           if (pAllowedSet.has(pid) && !usedP.has(pid)) {
             usedP.add(pid);
             const pq = P_BY_ID[pid];
@@ -1162,17 +1162,17 @@ function renderPracSolPanel(pq, panelId, isOpen) {
 }
 
 function renderPracDrawerForWritten(wq) {
-  if (!wq.tid) return '';
-  const pids = TOPIC_SILGI_IDS[wq.tid] || [];
-  const items = pids.slice(0, 5).map(pid => P_BY_ID[pid]).filter(Boolean);
+  if (!wq.pl || !wq.pl.length) return '';
+  const items = wq.pl.map(pid => P_BY_ID[pid]).filter(Boolean);
   if (!items.length) return '';
-  const totalSilgi = TOPIC_SILGI_TOTAL[wq.tid] || items.length;
   const isDrawerOpen = state.autoPracDrawer;
+  const conceptLbl = wq.lt ? `[${esc(wq.lt)}] ` : '';
+  const kwLbl = wq.lk ? `공통어: ${esc(wq.lk)}` : '필기 공부 시 실기 서술·계산 답안까지 함께 확인하세요';
 
   return `<div class="prac-drawer ${isDrawerOpen ? 'show' : ''}" id="pdraw_${wq.id}">
     <div class="drawer-head">
-      <strong style="font-size:13px; color:var(--prac);">⚡ 이 필기 개념과 직결되는 실기 기출 (총 ${totalSilgi}건 중 대표 ${items.length}건 미리보기)</strong>
-      <span style="font-size:11.5px; color:var(--muted);">필기 공부 시 실기 서술·계산 답안까지 함께 확인하세요</span>
+      <strong style="font-size:13px; color:var(--prac);">⚡ ${conceptLbl}직결 실기 기출 (${items.length}건 미리보기)</strong>
+      <span style="font-size:11.5px; color:var(--muted);">${kwLbl}</span>
     </div>
     ${items.map(pq => {
       const [kl, kc] = KIND_LABELS[pq.kind] || ['실기', 'b-pw'];
@@ -1274,9 +1274,9 @@ function renderPage() {
         const [pLabel, pCls] = PRIO_LABELS[q.p] || ['기타', 'b-p1'];
         const uAns = userAnswers[q.id];
         const showExp = state.studyMode || !!uAns;
-        const silgiTotal = q.tid ? (TOPIC_SILGI_TOTAL[q.tid] || 0) : 0;
-        const linkBadge = silgiTotal > 0
-          ? `<span class="badge b-link" onclick="toggleEl('pdraw_${q.id}')">⚡ 실기연계 ${silgiTotal}건 ▾</span>`
+        const linkCnt = (q.pl && q.pl.length) ? q.pl.length : 0;
+        const linkBadge = linkCnt > 0
+          ? `<span class="badge b-link" onclick="toggleEl('pdraw_${q.id}')">⚡ 실기연계 ${linkCnt}건${q.lt ? ' · ' + esc(q.lt) : ''} ▾</span>`
           : '';
         const ckBadge = q.ck
           ? `<span class="badge badge-ck" onclick="openPdfModal('theory', ${(CK_BY_ID[q.ck]?.startPage) || 1})">📖 ${esc(q.ckl || '치트키')}</span>`
@@ -1512,7 +1512,7 @@ async function bootstrap() {
       wq.chn = wq.ch ? (CHAPTER_MAP[wq.ch] || '') : '';
       wq._search = (wq.q + ' ' + (wq.opts || []).join(' ') + ' ' + (wq.exp || '') + ' ' + wq.chn + ' ' + wq.sses).toLowerCase();
       W_BY_ID[wq.id] = wq;
-      if (wq.tid) totalLinkedW++;
+      if (wq.pl && wq.pl.length) totalLinkedW++;
     });
 
     P_QUESTIONS.forEach(pq => {
