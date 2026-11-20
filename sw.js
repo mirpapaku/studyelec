@@ -1,4 +1,4 @@
-const CACHE_NAME = 'electric-cbt-full-v13';
+const CACHE_NAME = 'electric-cbt-full-v14';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,6 +9,21 @@ const APP_SHELL = [
   './data/index.json',
   './data/theory_map.json'
 ];
+
+// Always check network first for app shell & index metadata so new deployments reflect immediately
+function isNetworkFirst(url) {
+  const path = url.pathname;
+  return (
+    path.endsWith('/') ||
+    path.endsWith('/index.html') ||
+    path.endsWith('/app.js') ||
+    path.endsWith('/theory.js') ||
+    path.endsWith('/style.css') ||
+    path.endsWith('/manifest.webmanifest') ||
+    path.endsWith('/data/index.json') ||
+    path.endsWith('/data/theory_map.json')
+  );
+}
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -28,6 +43,23 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const reqUrl = new URL(event.request.url);
+
+  if (reqUrl.origin === self.location.origin && isNetworkFirst(reqUrl)) {
+    event.respondWith(
+      fetch(event.request)
+        .then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
